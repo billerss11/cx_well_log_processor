@@ -1,10 +1,6 @@
-import { client, getHealth } from "@welllog/ts-api-client";
 import { useEffect, useState } from "react";
 
-const apiBaseUrl =
-  import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8765";
-
-client.setConfig({ baseUrl: apiBaseUrl });
+import { getEngineHealth } from "../services/engineApi";
 
 export interface EngineStatus {
   readonly label: string;
@@ -20,7 +16,7 @@ export function useEngineStatus(): EngineStatus {
   useEffect(() => {
     let active = true;
 
-    void getHealth().then(({ data, error }) => {
+    void getEngineHealth().then(({ data, error }) => {
       if (!active) {
         return;
       }

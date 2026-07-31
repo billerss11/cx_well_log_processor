@@ -3,14 +3,15 @@ import CompressOutlined from "@ant-design/icons/CompressOutlined";
 import ZoomInOutlined from "@ant-design/icons/ZoomInOutlined";
 import ZoomOutOutlined from "@ant-design/icons/ZoomOutOutlined";
 import { Button, Tag, Tooltip, Typography } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import { curves, findCurve } from "./demoData";
 import { WellLogPreview } from "./WellLogPreview";
-
-const fullDepthMinimum = 2300;
-const fullDepthMaximum = 2420;
-const minimumDepthSpan = 15;
+import {
+  findCurve,
+  findNearestCurveValue,
+  formatCurveValue,
+  type WorkspaceDataset,
+} from "./workspaceTypes";
 
 interface DepthRange {
   readonly minimum: number;
@@ -18,20 +19,39 @@ interface DepthRange {
 }
 
 interface LogWorkspaceProps {
+  readonly dataset: WorkspaceDataset;
   readonly selectedCurveId: string;
   readonly onCurveSelect: (curveId: string) => void;
 }
 
 export function LogWorkspace({
+  dataset,
   selectedCurveId,
   onCurveSelect,
 }: LogWorkspaceProps) {
-  const [cursorDepth, setCursorDepth] = useState(2338.6);
+  const fullDepthMinimum = dataset.depthMinimum;
+  const fullDepthMaximum = dataset.depthMaximum;
+  const fullDepthSpan = fullDepthMaximum - fullDepthMinimum;
+  const minimumDepthSpan = Math.max(fullDepthSpan / 100, 0.1);
+  const [cursorDepth, setCursorDepth] = useState(
+    () => fullDepthMinimum + fullDepthSpan / 2,
+  );
   const [visibleRange, setVisibleRange] = useState<DepthRange>({
     minimum: fullDepthMinimum,
     maximum: fullDepthMaximum,
   });
-  const selectedCurve = findCurve(selectedCurveId);
+  const selectedCurve = findCurve(dataset.curves, selectedCurveId);
+  const displayedCurves = useMemo(() => {
+    const initialCurves = dataset.curves.slice(0, 4);
+    if (initialCurves.some((curve) => curve.id === selectedCurveId)) {
+      return initialCurves;
+    }
+    if (initialCurves.length < 4) {
+      return [...initialCurves, selectedCurve];
+    }
+    return [...initialCurves.slice(0, 3), selectedCurve];
+  }, [dataset.curves, selectedCurve, selectedCurveId]);
+  const cursorValue = findNearestCurveValue(selectedCurve, cursorDepth);
 
   function setDepthSpan(nextSpan: number): void {
     const boundedSpan = Math.min(
@@ -61,11 +81,18 @@ export function LogWorkspace({
       <header className="workspace-heading">
         <div>
           <div className="workspace-title-row">
-            <Typography.Title level={2}>Orion A-12</Typography.Title>
-            <Tag variant="filled">Main pass</Tag>
+            <Typography.Title level={2}>{dataset.wellName}</Typography.Title>
+            <Tag variant="filled">LAS {dataset.lasVersion}</Tag>
           </div>
           <Typography.Text className="workspace-subtitle">
-            2,300.0 — 2,420.0 m MD
+            {fullDepthMinimum.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            })}{" "}
+            —{" "}
+            {fullDepthMaximum.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            })}{" "}
+            {dataset.depthUnit} MD
           </Typography.Text>
         </div>
 
@@ -116,7 +143,7 @@ export function LogWorkspace({
 
       <div className="curve-toolbar">
         <div className="curve-chip-list" aria-label="Visible curves">
-          {curves.map((curve) => (
+          {dataset.curves.map((curve) => (
             <button
               className={
                 selectedCurveId === curve.id
@@ -139,7 +166,7 @@ export function LogWorkspace({
 
         <div className="cursor-readout">
           <span>{selectedCurve.mnemonic}</span>
-          <strong>{selectedCurve.currentValue}</strong>
+          <strong>{formatCurveValue(cursorValue)}</strong>
           <span>{selectedCurve.unit}</span>
         </div>
       </div>
@@ -147,7 +174,9 @@ export function LogWorkspace({
       <div className="instrument-shell">
         <div className="instrument-core">
           <WellLogPreview
+            curves={displayedCurves}
             cursorDepth={cursorDepth}
+            depthUnit={dataset.depthUnit}
             onCursorChange={setCursorDepth}
             onCurveSelect={onCurveSelect}
             selectedCurveId={selectedCurveId}
@@ -161,11 +190,14 @@ export function LogWorkspace({
           Visible range{" "}
           <strong>
             {visibleRange.minimum.toFixed(1)} —{" "}
-            {visibleRange.maximum.toFixed(1)} m
+            {visibleRange.maximum.toFixed(1)} {dataset.depthUnit}
           </strong>
         </span>
         <span>
-          Cursor <strong>{cursorDepth.toFixed(1)} m MD</strong>
+          Cursor{" "}
+          <strong>
+            {cursorDepth.toFixed(2)} {dataset.depthUnit} MD
+          </strong>
         </span>
         <span>LOD · screen optimized</span>
       </footer>

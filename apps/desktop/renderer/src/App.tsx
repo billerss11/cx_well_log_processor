@@ -11,20 +11,49 @@ import { useState } from "react";
 
 import "./app.css";
 import { CurveInspector } from "./features/workspace/CurveInspector";
-import {
-  defaultCurveId,
-  findCurve,
-} from "./features/workspace/demoData";
+import { demoDataset } from "./features/workspace/demoData";
 import { LogWorkspace } from "./features/workspace/LogWorkspace";
 import { ProjectExplorer } from "./features/workspace/ProjectExplorer";
+import { findCurve } from "./features/workspace/workspaceTypes";
 import { useEngineStatus } from "./hooks/useEngineStatus";
+import { useLasImport } from "./hooks/useLasImport";
 
 export function App() {
   const { message } = AntDesignApp.useApp();
   const engineStatus = useEngineStatus();
-  const [selectedCurveId, setSelectedCurveId] = useState(defaultCurveId);
-  const selectedCurve = findCurve(selectedCurveId);
+  const { importing, selectAndImportLas } = useLasImport();
+  const [dataset, setDataset] = useState(demoDataset);
+  const [selectedCurveId, setSelectedCurveId] = useState(
+    demoDataset.curves[0]?.id ?? "curve-gr",
+  );
+  const selectedCurve = findCurve(dataset.curves, selectedCurveId);
   const platform = window.welllogDesktop?.platform ?? "desktop";
+
+  async function handleImport(): Promise<void> {
+    try {
+      const importedDataset = await selectAndImportLas();
+      if (!importedDataset) {
+        return;
+      }
+
+      const initialCurve =
+        importedDataset.curves.find(
+          (curve) => curve.mnemonic.toLocaleUpperCase() === "GR",
+        ) ?? importedDataset.curves[0];
+      if (!initialCurve) {
+        throw new Error("The selected LAS file does not contain usable curves.");
+      }
+      setDataset(importedDataset);
+      setSelectedCurveId(initialCurve.id);
+      void message.success(
+        `Imported ${importedDataset.sourceFile}: ${importedDataset.curves.length} curves.`,
+      );
+    } catch (error) {
+      void message.error(
+        error instanceof Error ? error.message : "LAS import failed.",
+      );
+    }
+  }
 
   return (
     <main className="app-frame">
@@ -50,8 +79,8 @@ export function App() {
 
           <div className="project-context" aria-label="Current project">
             <span>Current project</span>
-            <strong>Delaware Basin study</strong>
-            <small>Saved locally</small>
+            <strong>{dataset.projectName}</strong>
+            <small>{dataset.sourceFile}</small>
           </div>
 
           <div className="header-actions">
@@ -76,11 +105,8 @@ export function App() {
             </Tooltip>
             <Button
               className="primary-action"
-              onClick={() => {
-                void message.info(
-                  "Import will open the native file picker in the next implementation step.",
-                );
-              }}
+              loading={importing}
+              onClick={() => void handleImport()}
               type="primary"
             >
               <span>Import data</span>
@@ -102,12 +128,15 @@ export function App() {
               min={190}
             >
               <ProjectExplorer
+                dataset={dataset}
                 onCurveSelect={setSelectedCurveId}
                 selectedCurveId={selectedCurveId}
               />
             </Splitter.Panel>
             <Splitter.Panel className="workspace-panel log-panel" min={420}>
               <LogWorkspace
+                dataset={dataset}
+                key={dataset.id}
                 onCurveSelect={setSelectedCurveId}
                 selectedCurveId={selectedCurveId}
               />
@@ -118,7 +147,7 @@ export function App() {
               max={380}
               min={220}
             >
-              <CurveInspector curve={selectedCurve} />
+              <CurveInspector curve={selectedCurve} dataset={dataset} />
             </Splitter.Panel>
           </Splitter>
         </section>
@@ -134,7 +163,10 @@ export function App() {
           />
           Local-only workspace
         </div>
-        <div>Demo dataset · Orion A-12 · Main bore</div>
+        <div>
+          {dataset.sourceFormat} · {dataset.wellName} ·{" "}
+          {dataset.rowCount.toLocaleString()} rows
+        </div>
         <div>
           {platform} · Electron {window.welllogDesktop?.versions.electron ?? "dev"}
         </div>

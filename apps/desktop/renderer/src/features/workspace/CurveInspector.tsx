@@ -6,13 +6,22 @@ import {
   type DescriptionsProps,
 } from "antd";
 
-import type { CurveDefinition } from "./demoData";
+import {
+  formatCurveValue,
+  type CurveDefinition,
+  type WorkspaceDataset,
+} from "./workspaceTypes";
 
 interface CurveInspectorProps {
   readonly curve: CurveDefinition;
+  readonly dataset: WorkspaceDataset;
 }
 
-export function CurveInspector({ curve }: CurveInspectorProps) {
+export function CurveInspector({ curve, dataset }: CurveInspectorProps) {
+  const validSampleCount = curve.sampleCount - curve.nullCount;
+  const validPercent =
+    curve.sampleCount > 0 ? (validSampleCount / curve.sampleCount) * 100 : 0;
+  const nullPercent = 100 - validPercent;
   const descriptionItems: DescriptionsProps["items"] = [
     {
       key: "unit",
@@ -27,12 +36,12 @@ export function CurveInspector({ curve }: CurveInspectorProps) {
     {
       key: "range",
       label: "Display range",
-      children: `${curve.minimum} — ${curve.maximum}`,
+      children: `${formatCurveValue(curve.minimum)} — ${formatCurveValue(curve.maximum)}`,
     },
     {
       key: "samples",
       label: "Samples",
-      children: curve.sampleCount,
+      children: curve.sampleCount.toLocaleString(),
     },
   ];
 
@@ -55,7 +64,7 @@ export function CurveInspector({ curve }: CurveInspectorProps) {
         />
         <div>
           <strong>{curve.description}</strong>
-          <span>Main pass · Main bore</span>
+          <span>{dataset.datasetName}</span>
         </div>
         <Tag color="success" variant="filled">
           Source
@@ -87,9 +96,9 @@ export function CurveInspector({ curve }: CurveInspectorProps) {
 
         <div className="quality-row">
           <span>Valid samples</span>
-          <strong>99.7%</strong>
+          <strong>{validPercent.toFixed(1)}%</strong>
           <Progress
-            percent={99.7}
+            percent={validPercent}
             showInfo={false}
             size="small"
             strokeColor="#3f7d5a"
@@ -97,9 +106,9 @@ export function CurveInspector({ curve }: CurveInspectorProps) {
         </div>
         <div className="quality-row">
           <span>Null values</span>
-          <strong>0.3%</strong>
+          <strong>{nullPercent.toFixed(1)}%</strong>
           <Progress
-            percent={0.3}
+            percent={nullPercent}
             showInfo={false}
             size="small"
             strokeColor="#b46f32"
@@ -114,15 +123,15 @@ export function CurveInspector({ curve }: CurveInspectorProps) {
         <dl>
           <div>
             <dt>Source</dt>
-            <dd>orion_a12_main.las</dd>
+            <dd>{dataset.sourceFile}</dd>
           </div>
           <div>
-            <dt>Imported</dt>
-            <dd>18 Jun 2024 · 14:32</dd>
+            <dt>LAS version</dt>
+            <dd>{dataset.lasVersion}</dd>
           </div>
           <div>
-            <dt>Revision</dt>
-            <dd>Source · r1</dd>
+            <dt>Status</dt>
+            <dd>Session preview</dd>
           </div>
         </dl>
       </section>

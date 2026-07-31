@@ -2,34 +2,37 @@ import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import { Input, Tree, Typography, type TreeDataNode } from "antd";
 import { useMemo, useState } from "react";
 
-import { curves } from "./demoData";
+import type { WorkspaceDataset } from "./workspaceTypes";
 
-function createProjectTreeData(filterTerm: string): TreeDataNode[] {
+function createProjectTreeData(
+  dataset: WorkspaceDataset,
+  filterTerm: string,
+): TreeDataNode[] {
   const normalizedFilter = filterTerm.trim().toLocaleLowerCase();
   const visibleCurves = normalizedFilter
-    ? curves.filter((curve) =>
+    ? dataset.curves.filter((curve) =>
         `${curve.mnemonic} ${curve.description} ${curve.unit}`
           .toLocaleLowerCase()
           .includes(normalizedFilter),
       )
-    : curves;
+    : dataset.curves;
 
   return [
     {
       key: "project",
-      title: "Delaware Basin study",
+      title: dataset.projectName,
       children: [
         {
           key: "well",
-          title: "Orion A-12",
+          title: dataset.wellName,
           children: [
             {
               key: "wellbore",
-              title: "Main bore",
+              title: "Imported wellbore",
               children: [
                 {
                   key: "dataset",
-                  title: "Main pass · 2024-06-18",
+                  title: dataset.datasetName,
                   children: visibleCurves.map((curve) => ({
                     key: curve.id,
                     title: (
@@ -45,10 +48,6 @@ function createProjectTreeData(filterTerm: string): TreeDataNode[] {
                     ),
                   })),
                 },
-                {
-                  key: "formation-tops",
-                  title: "Formation tops",
-                },
               ],
             },
           ],
@@ -59,18 +58,20 @@ function createProjectTreeData(filterTerm: string): TreeDataNode[] {
 }
 
 interface ProjectExplorerProps {
+  readonly dataset: WorkspaceDataset;
   readonly selectedCurveId: string;
   readonly onCurveSelect: (curveId: string) => void;
 }
 
 export function ProjectExplorer({
+  dataset,
   selectedCurveId,
   onCurveSelect,
 }: ProjectExplorerProps) {
   const [filterTerm, setFilterTerm] = useState("");
   const projectTreeData = useMemo(
-    () => createProjectTreeData(filterTerm),
-    [filterTerm],
+    () => createProjectTreeData(dataset, filterTerm),
+    [dataset, filterTerm],
   );
 
   return (
@@ -102,7 +103,7 @@ export function ProjectExplorer({
             const selectedKey = selectedKeys[0];
             if (
               typeof selectedKey === "string" &&
-              curves.some((curve) => curve.id === selectedKey)
+              dataset.curves.some((curve) => curve.id === selectedKey)
             ) {
               onCurveSelect(selectedKey);
             }
@@ -117,8 +118,10 @@ export function ProjectExplorer({
           LAS
         </span>
         <div>
-          <strong>orion_a12_main.las</strong>
-          <span>24,081 rows · referenced source</span>
+          <strong>{dataset.sourceFile}</strong>
+          <span>
+            {dataset.rowCount.toLocaleString()} rows · loaded in session
+          </span>
         </div>
       </div>
     </aside>
