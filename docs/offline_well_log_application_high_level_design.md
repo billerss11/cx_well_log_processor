@@ -138,6 +138,7 @@ The application will support:
 |---|---|---|
 | Desktop shell | Electron | Window lifecycle, packaging, file dialogs, OS integration |
 | Frontend | React + TypeScript + Vite | Desktop UI and future web-portable UI |
+| UI component library | Ant Design 6 | Desktop application shell, controls, forms, tables, trees, dialogs, and feedback |
 | Scalar rendering | Custom Canvas 2D track engine | Curves, axes, grids, cursor, labels |
 | Advanced rendering | WebGL, introduced only when needed | Image logs, waveforms, dense raster views |
 | Backend language | Python | Parsing, processing, QC, storage, automation |
@@ -180,6 +181,33 @@ The application is offline and primarily single-user. DuckDB plus Parquet is sim
 #### Polars is not a core dependency
 
 DuckDB, PyArrow, NumPy, and SciPy cover the initial query, batch, and numerical requirements. Polars may be introduced later only when benchmarks demonstrate a clear need.
+
+### 4.2 UI component strategy
+
+Use **Ant Design 6** as the only general-purpose React component library.
+
+Ant Design is responsible for:
+
+- the desktop application shell and navigation;
+- resizable workspace panels;
+- project, well, wellbore, dataset, and curve trees;
+- metadata and job tables;
+- forms, menus, toolbars, dialogs, notifications, and progress indicators;
+- keyboard-accessible interaction states;
+- shared theme tokens, density, spacing, and component styling.
+
+The application should use Ant Design's compact sizing and theme tokens as a starting point, then apply a restrained well-log workstation visual identity. Do not ship the default theme unchanged, and do not introduce a second general-purpose UI library.
+
+Ant Design is not responsible for:
+
+- rendering log curves, depth grids, formation tops, annotations, images, or waveforms;
+- engineering calculations, parsing, QC, or data transformations;
+- direct filesystem access;
+- loading complete large datasets into frontend tables.
+
+The custom `log-renderer` package remains responsible for technical visualization. Electron's typed preload API remains responsible for native file dialogs and controlled OS access. Large tables must use server-side filtering, sorting, pagination, or virtual scrolling as appropriate.
+
+PrimeReact is not selected for the new application. PrimeReact 11 uses the PrimeUI license, while the existing MIT-licensed PrimeReact 10 repository is archived. The added licensing and lifecycle constraints provide no clear benefit over Ant Design for this project.
 
 ---
 
@@ -1142,7 +1170,7 @@ Initial track capabilities:
 Use a custom renderer:
 
 - Canvas 2D for scalar curves, axes, text, grids, cursor, and annotations;
-- ordinary React DOM for controls and panels;
+- Ant Design components in ordinary React DOM for controls and panels;
 - WebGL only for high-density image/waveform data;
 - a Web Worker or OffscreenCanvas may be added after profiling.
 
@@ -1610,6 +1638,7 @@ The React UI and generated API client are reusable, but a web deployment require
 - Build CLI skeleton with JSON output.
 - Generate TypeScript client from OpenAPI.
 - Package minimal Python sidecar.
+- Define the Ant Design theme tokens and prototype the desktop workspace shell.
 - Prototype scalar renderer with four synchronized tracks.
 - Benchmark Parquet layout and Arrow IPC.
 - Test representative malformed and large files.
@@ -1701,6 +1730,7 @@ The React UI and generated API client are reusable, but a web deployment require
 |---|---|
 | Product shape | Offline API-first modular monolith |
 | Human interface | Electron + React + TypeScript |
+| UI component library | Ant Design 6 with application-specific theme tokens |
 | Programmatic interfaces | Python API + CLI + local HTTP API |
 | AI-agent interface | Normal CLI/HTTP/Python; no MCP |
 | Backend | Python application engine |
@@ -1797,3 +1827,15 @@ The architecture was checked against the following primary documentation:
 
 17. Typer — typed CLI application design:  
     https://typer.tiangolo.com/tutorial/
+
+18. Ant Design — React library overview, Electron support, TypeScript, and theming:
+    https://ant.design/docs/react/introduce/
+
+19. Ant Design — table features, including virtual scrolling, filtering, and sorting:
+    https://ant.design/components/table/
+
+20. Ant Design — resizable splitter panels:
+    https://ant.design/components/splitter/
+
+21. Ant Design — hierarchical tree component:
+    https://ant.design/components/tree/
