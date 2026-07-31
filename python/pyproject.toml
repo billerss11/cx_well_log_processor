@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "fastapi>=0.115,<1",
+    "lasio>=0.32,<1",
     "pydantic>=2.10,<3",
     "typer>=0.16,<1",
     "uvicorn>=0.34,<1",

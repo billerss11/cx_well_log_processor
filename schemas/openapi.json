@@ -1,6 +1,19 @@
 {
   "components": {
     "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "api_version": {
@@ -23,6 +36,254 @@
           "api_version"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "ImportErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "ImportErrorResponse",
+        "type": "object"
+      },
+      "LasCurveSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "mnemonic": {
+            "title": "Mnemonic",
+            "type": "string"
+          },
+          "null_count": {
+            "title": "Null Count",
+            "type": "integer"
+          },
+          "preview_samples": {
+            "items": {
+              "$ref": "#/components/schemas/LasPreviewSample"
+            },
+            "title": "Preview Samples",
+            "type": "array"
+          },
+          "sample_count": {
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "mnemonic",
+          "unit",
+          "description",
+          "minimum",
+          "maximum",
+          "sample_count",
+          "null_count",
+          "preview_samples"
+        ],
+        "title": "LasCurveSummary",
+        "type": "object"
+      },
+      "LasImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "max_preview_points": {
+            "default": 800,
+            "maximum": 2000.0,
+            "minimum": 100.0,
+            "title": "Max Preview Points",
+            "type": "integer"
+          },
+          "source_path": {
+            "minLength": 1,
+            "title": "Source Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_path"
+        ],
+        "title": "LasImportRequest",
+        "type": "object"
+      },
+      "LasImportResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "curves": {
+            "items": {
+              "$ref": "#/components/schemas/LasCurveSummary"
+            },
+            "title": "Curves",
+            "type": "array"
+          },
+          "depth_maximum": {
+            "title": "Depth Maximum",
+            "type": "number"
+          },
+          "depth_minimum": {
+            "title": "Depth Minimum",
+            "type": "number"
+          },
+          "depth_mnemonic": {
+            "title": "Depth Mnemonic",
+            "type": "string"
+          },
+          "depth_unit": {
+            "title": "Depth Unit",
+            "type": "string"
+          },
+          "field_name": {
+            "title": "Field Name",
+            "type": "string"
+          },
+          "file_size_bytes": {
+            "title": "File Size Bytes",
+            "type": "integer"
+          },
+          "las_version": {
+            "title": "Las Version",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "source_file": {
+            "title": "Source File",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "well_name": {
+            "title": "Well Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_file",
+          "file_size_bytes",
+          "las_version",
+          "well_name",
+          "field_name",
+          "depth_mnemonic",
+          "depth_unit",
+          "depth_minimum",
+          "depth_maximum",
+          "row_count",
+          "curves",
+          "warnings"
+        ],
+        "title": "LasImportResponse",
+        "type": "object"
+      },
+      "LasPreviewSample": {
+        "additionalProperties": false,
+        "properties": {
+          "depth": {
+            "title": "Depth",
+            "type": "number"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "depth",
+          "value"
+        ],
+        "title": "LasPreviewSample",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
         "type": "object"
       }
     }
@@ -51,6 +312,67 @@
         "summary": "Health",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/imports/las": {
+      "post": {
+        "operationId": "importLas",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LasImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LasImportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Las Route",
+        "tags": [
+          "imports"
         ]
       }
     }

@@ -5,6 +5,16 @@ export type ClientOptions = {
 };
 
 /**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
+};
+
+/**
  * HealthResponse
  */
 export type HealthResponse = {
@@ -22,6 +32,168 @@ export type HealthResponse = {
     status: 'ok';
 };
 
+/**
+ * ImportErrorResponse
+ */
+export type ImportErrorResponse = {
+    /**
+     * Detail
+     */
+    detail: string;
+};
+
+/**
+ * LasCurveSummary
+ */
+export type LasCurveSummary = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Maximum
+     */
+    maximum: number | null;
+    /**
+     * Minimum
+     */
+    minimum: number | null;
+    /**
+     * Mnemonic
+     */
+    mnemonic: string;
+    /**
+     * Null Count
+     */
+    null_count: number;
+    /**
+     * Preview Samples
+     */
+    preview_samples: Array<LasPreviewSample>;
+    /**
+     * Sample Count
+     */
+    sample_count: number;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * LasImportRequest
+ */
+export type LasImportRequest = {
+    /**
+     * Max Preview Points
+     */
+    max_preview_points?: number;
+    /**
+     * Source Path
+     */
+    source_path: string;
+};
+
+/**
+ * LasImportResponse
+ */
+export type LasImportResponse = {
+    /**
+     * Curves
+     */
+    curves: Array<LasCurveSummary>;
+    /**
+     * Depth Maximum
+     */
+    depth_maximum: number;
+    /**
+     * Depth Minimum
+     */
+    depth_minimum: number;
+    /**
+     * Depth Mnemonic
+     */
+    depth_mnemonic: string;
+    /**
+     * Depth Unit
+     */
+    depth_unit: string;
+    /**
+     * Field Name
+     */
+    field_name: string;
+    /**
+     * File Size Bytes
+     */
+    file_size_bytes: number;
+    /**
+     * Las Version
+     */
+    las_version: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Source File
+     */
+    source_file: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+    /**
+     * Well Name
+     */
+    well_name: string;
+};
+
+/**
+ * LasPreviewSample
+ */
+export type LasPreviewSample = {
+    /**
+     * Depth
+     */
+    depth: number;
+    /**
+     * Value
+     */
+    value: number | null;
+};
+
+/**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
+};
+
 export type GetHealthData = {
     body?: never;
     path?: never;
@@ -37,3 +209,36 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ImportLasData = {
+    body: LasImportRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/imports/las';
+};
+
+export type ImportLasErrors = {
+    /**
+     * Bad Request
+     */
+    400: ImportErrorResponse;
+    /**
+     * Request Entity Too Large
+     */
+    413: ImportErrorResponse;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ImportLasError = ImportLasErrors[keyof ImportLasErrors];
+
+export type ImportLasResponses = {
+    /**
+     * Successful Response
+     */
+    200: LasImportResponse;
+};
+
+export type ImportLasResponse = ImportLasResponses[keyof ImportLasResponses];
