@@ -1,0 +1,1 @@
+"""LAS source adapter."""

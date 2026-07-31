@@ -1,0 +1,32 @@
+{
+  "name": "cx-well-log-processor",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.2",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "contracts:export": "python tools/export_openapi.py",
+    "contracts:generate": "pnpm contracts:export && pnpm --filter @welllog/ts-api-client generate",
+    "dev": "concurrently -k -n api,desktop \"cross-env WELLLOG_DEV_CORS=1 python -m welllog_engine.api\" \"pnpm --filter @welllog/desktop dev\"",
+    "lint": "eslint . && python -m ruff check python tools",
+    "test": "pnpm -r --if-present test && python -m pytest python/tests",
+    "typecheck": "pnpm -r --if-present typecheck && python -m mypy python/src tools"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^24.1.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.3.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0"
+  }
+}

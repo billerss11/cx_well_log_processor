@@ -1,0 +1,1 @@
+"""DLIS source adapter."""

@@ -1,0 +1,36 @@
+# JavaScript
+node_modules/
+dist/
+dist-electron/
+dist-renderer/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+
+# Local environments and settings
+.venv/
+.env
+.env.local
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local application data
+projects/
+
+# Generated local tooling and browser-test output
+.codegraph/
+output/playwright/
