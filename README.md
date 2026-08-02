@@ -10,38 +10,61 @@ same services.
 ## Prerequisites
 
 - Node.js 22 or newer
-- pnpm 10
-- Conda environment `cx_well_log_backend`
+- Conda
+- Corepack, included with Node.js 22
+
+The shared development configuration is:
+
+- pnpm `10.6.2`, selected from `package.json` through Corepack
+- Python `3.11` in Conda environment `cx_well_log_backend`
+- Python API at `http://127.0.0.1:8765`
+- Vite renderer at `http://127.0.0.1:5174`
+- Direct localhost connections through `NO_PROXY=127.0.0.1,localhost`
 
 ## First-time setup
 
-```powershell
-conda activate cx_well_log_backend
-python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e "./python[dev]"
-pnpm install
-pnpm contracts:generate
+```text
+setup-dev.bat
 ```
+
+The setup script is safe to rerun after `git pull`. It creates or updates the
+shared Conda environment and installs the frozen JavaScript and Python
+dependencies. It does not regenerate tracked source files.
+
+Verify the complete environment locally, without GitHub Actions:
+
+```text
+verify-dev.bat
+```
+
+Verification runs linting, type checks, tests, builds, and a live smoke test of
+the API, Vite renderer, and Electron process. The smoke test stops only the
+process tree that it started.
 
 ## Development
 
 Start the Python API, Vite renderer, and Electron shell together:
 
-```powershell
-conda activate cx_well_log_backend
-pnpm dev
+```text
+start-dev.bat
 ```
 
-On Windows, you can also double-click `start-dev.bat` in the repository root.
+You can double-click any of the `.bat` files from Windows Explorer.
 
 The development API is available at `http://127.0.0.1:8765/api/v1`.
 
 Useful commands:
 
 ```powershell
-welllog doctor --output json
-pnpm check
-pnpm contracts:generate
+conda run -n cx_well_log_backend welllog doctor --output json
+conda run --no-capture-output -n cx_well_log_backend corepack pnpm check
+conda run --no-capture-output -n cx_well_log_backend corepack pnpm contracts:generate
 ```
+
+When Python dependencies change in `python/pyproject.toml`, regenerate
+`python/requirements-dev.lock.txt` from Python 3.11 with `pip-tools`. Commit
+both files together. When JavaScript dependencies change, commit the matching
+`pnpm-lock.yaml` update.
 
 ## Repository layout
 

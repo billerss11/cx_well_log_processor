@@ -9,14 +9,14 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "build": "pnpm -r --if-present build",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "build": "corepack pnpm -r --if-present build",
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
     "contracts:export": "python tools/export_openapi.py",
-    "contracts:generate": "pnpm contracts:export && pnpm --filter @welllog/ts-api-client generate",
-    "dev": "concurrently -k -n api,desktop \"cross-env WELLLOG_DEV_CORS=1 python -m welllog_engine.api\" \"pnpm --filter @welllog/desktop dev\"",
+    "contracts:generate": "corepack pnpm contracts:export && corepack pnpm --filter @welllog/ts-api-client generate",
+    "dev": "concurrently -k -n api,desktop \"cross-env WELLLOG_DEV_CORS=1 python -m welllog_engine.api\" \"corepack pnpm --filter @welllog/desktop dev\"",
     "lint": "eslint . && python -m ruff check python tools",
-    "test": "pnpm -r --if-present test && python -m pytest python/tests",
-    "typecheck": "pnpm -r --if-present typecheck && python -m mypy python/src tools"
+    "test": "corepack pnpm -r --if-present test && python -m pytest python/tests",
+    "typecheck": "corepack pnpm -r --if-present typecheck && python -m mypy python/src tools"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

@@ -1,0 +1,6 @@
+name: cx_well_log_backend
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
