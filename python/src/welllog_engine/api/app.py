@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     if os.getenv("WELLLOG_DEV_CORS") == "1":
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+            allow_origins=["http://127.0.0.1:5174", "http://localhost:5174"],
             allow_methods=["GET", "POST"],
             allow_headers=["*"],
         )

@@ -1,6 +1,7 @@
 import json
 
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
 from welllog_engine import Engine
@@ -25,3 +26,14 @@ def test_openapi_uses_stable_health_operation_id() -> None:
 
     operation = schema["paths"]["/api/v1/health"]["get"]
     assert operation["operationId"] == "getHealth"
+
+
+def test_development_api_allows_desktop_origin(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("WELLLOG_DEV_CORS", "1")
+
+    response = TestClient(create_app()).get(
+        "/api/v1/health",
+        headers={"Origin": "http://127.0.0.1:5174"},
+    )
+
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5174"
