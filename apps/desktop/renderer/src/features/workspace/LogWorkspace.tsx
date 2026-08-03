@@ -5,7 +5,7 @@ import ZoomOutOutlined from "@ant-design/icons/ZoomOutOutlined";
 import { Button, Tag, Tooltip, Typography } from "antd";
 import { useMemo, useState } from "react";
 
-import { WellLogPreview } from "./WellLogPreview";
+import { WellLogChart } from "./WellLogChart";
 import {
   findCurve,
   findNearestCurveValue,
@@ -181,12 +181,18 @@ export function LogWorkspace({
 
       <div className="instrument-shell">
         <div className="instrument-core">
-          <WellLogPreview
+          <WellLogChart
             curves={displayedCurves}
-            cursorDepth={cursorDepth}
-            depthUnit={dataset.indexUnit}
+            cursorIndex={cursorDepth}
+            fullRange={{
+              minimum: fullDepthMinimum,
+              maximum: fullDepthMaximum,
+            }}
+            indexMnemonic={dataset.indexMnemonic}
+            indexUnit={dataset.indexUnit}
             onCursorChange={setCursorDepth}
             onCurveSelect={onCurveSelect}
+            onViewportChange={setVisibleRange}
             selectedCurveId={selectedCurveId}
             visibleRange={visibleRange}
           />

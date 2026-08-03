@@ -11,6 +11,14 @@ const desktopMocks = vi.hoisted(() => ({
   selectWellLogFile: vi.fn<() => Promise<string | null>>(),
 }));
 
+const rendererMocks = vi.hoisted(() => ({
+  createScalarLogRenderer: vi.fn(() => ({
+    dispose: vi.fn(),
+    resize: vi.fn(),
+    update: vi.fn(),
+  })),
+}));
+
 const testData = vi.hoisted(() => ({
   documentSummary: {
     datasets: [
@@ -97,6 +105,10 @@ vi.mock("@welllog/ts-api-client", () => ({
   saveDocumentAs: vi
     .fn()
     .mockResolvedValue({ data: { job_id: "save-job" } }),
+}));
+
+vi.mock("@welllog/log-renderer", () => ({
+  createScalarLogRenderer: rendererMocks.createScalarLogRenderer,
 }));
 
 beforeEach(() => {
