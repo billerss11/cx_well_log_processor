@@ -30,6 +30,7 @@ Thumbs.db
 
 # Local application data
 projects/
+files/local/
 
 # Generated local tooling and browser-test output
 .codegraph/

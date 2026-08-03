@@ -53,10 +53,34 @@ You can double-click any of the `.bat` files from Windows Explorer.
 
 The development API is available at `http://127.0.0.1:8765/api/v1`.
 
+## CX Log documents
+
+The desktop can open LAS, DLIS, local WITSML XML/EPC, and `.cxlog` files. Raw
+well-log files open as temporary sessions. **Save As** writes a portable
+`.cxlog` document so the converted data does not need to be parsed again.
+
+CX Log is a versioned ZIP64 package containing:
+
+- a manifest with source provenance and asset checksums;
+- a DuckDB metadata catalog;
+- Parquet files for scalar curves;
+- Zarr storage for multidimensional channels and companion HDF5 arrays;
+- preserved source metadata, without embedding the original source file or an
+  absolute source path.
+
+It is an explicit document format, not an automatic cache or a project folder.
+Temporary working data is removed when the document or engine closes, and
+stale crashed sessions are cleaned on startup.
+
+See `docs/cxlog_format.md` for the versioned layout and compatibility rules.
+
 Useful commands:
 
 ```powershell
 conda run -n cx_well_log_backend welllog doctor --output json
+conda run -n cx_well_log_backend welllog inspect files/test.las
+conda run -n cx_well_log_backend welllog convert files/test.las output.cxlog
+conda run -n cx_well_log_backend welllog package verify output.cxlog
 conda run --no-capture-output -n cx_well_log_backend corepack pnpm check
 conda run --no-capture-output -n cx_well_log_backend corepack pnpm contracts:generate
 ```

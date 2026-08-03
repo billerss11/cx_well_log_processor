@@ -65,7 +65,8 @@ The application will support:
 - best-effort inspection of LAS 3.0, with explicit capability reporting;
 - DLIS import;
 - offline WITSML 1.4.1.1 XML import;
-- later offline WITSML 2.1 XML and companion-array import;
+- offline WITSML 2.1 XML/EPC and companion-HDF5 import;
+- explicit Save As to the portable CX Log document format;
 - metadata inspection;
 - scalar log visualization;
 - large-file import and querying;
@@ -139,8 +140,8 @@ The application will support:
 | Desktop shell | Electron | Window lifecycle, packaging, file dialogs, OS integration |
 | Frontend | React + TypeScript + Vite | Desktop UI and future web-portable UI |
 | UI component library | Ant Design 6 | Desktop application shell, controls, forms, tables, trees, dialogs, and feedback |
-| Scalar rendering | Custom Canvas 2D track engine | Curves, axes, grids, cursor, labels |
-| Advanced rendering | WebGL, introduced only when needed | Image logs, waveforms, dense raster views |
+| Scalar rendering | Apache ECharts with the Canvas renderer | Multi-track curves, axes, grids, cursor, tooltip, and navigation |
+| Advanced rendering | Dedicated WebGL renderer, introduced only when needed | Image logs, waveforms, dense raster views |
 | Backend language | Python | Parsing, processing, QC, storage, automation |
 | Application API | Typed Python application services | One implementation of all operations |
 | Local HTTP API | FastAPI | OpenAPI contract, UI communication, external automation |
@@ -205,7 +206,7 @@ Ant Design is not responsible for:
 - direct filesystem access;
 - loading complete large datasets into frontend tables.
 
-The custom `log-renderer` package remains responsible for technical visualization. Electron's typed preload API remains responsible for native file dialogs and controlled OS access. Large tables must use server-side filtering, sorting, pagination, or virtual scrolling as appropriate.
+The `log-renderer` package configures and coordinates the ECharts log view. It owns track-to-grid mapping, shared depth navigation, chart event handling, and conversion of Arrow data into ECharts series. It must not duplicate the backend's data-selection or LOD rules. Electron's typed preload API remains responsible for native file dialogs and controlled OS access. Large tables must use server-side filtering, sorting, pagination, or virtual scrolling as appropriate.
 
 PrimeReact is not selected for the new application. PrimeReact 11 uses the PrimeUI license, while the existing MIT-licensed PrimeReact 10 repository is archived. The added licensing and lifecycle constraints provide no clear benefit over Ant Design for this project.
 
@@ -783,7 +784,7 @@ This limitation must be documented, benchmarked, and exposed through adapter cap
 
 As of this design, Energistics identifies WITSML 2.1 as the latest standard. WITSML 2.0 is no longer recommended for new implementation. WITSML 1.4.1.1 remains common in existing exported XML datasets.
 
-### Phase A: WITSML 1.4.1.1
+### WITSML 1.4.1.1
 
 Support offline XML objects for:
 
@@ -796,7 +797,7 @@ Support offline XML objects for:
 
 Use incremental XML parsing and clear processed elements from memory.
 
-### Phase B: WITSML 2.1
+### WITSML 2.1
 
 Support:
 
@@ -814,7 +815,8 @@ ETP is not required because the application imports offline files only.
 - Preserve original UUIDs and object references.
 - Do not silently map unknown objects into generic logs.
 - Report unsupported objects in the import inventory.
-- Keep the original XML and companion files available for audit.
+- Preserve object metadata, UUIDs, references, source filename, size, and hash.
+- Do not embed the original XML, EPC, or companion files in a CX Log document.
 
 ---
 
@@ -1167,14 +1169,16 @@ Initial track capabilities:
 
 ## 19.2 Rendering choice
 
-Use a custom renderer:
+Use Apache ECharts with its Canvas renderer for the initial scalar log viewer. This avoids building basic chart interaction and drawing infrastructure from scratch while retaining a browser-native, open-source rendering path.
 
-- Canvas 2D for scalar curves, axes, text, grids, cursor, and annotations;
-- Ant Design components in ordinary React DOM for controls and panels;
-- WebGL only for high-density image/waveform data;
-- a Web Worker or OffscreenCanvas may be added after profiling.
+- Use one ECharts instance containing multiple side-by-side grids, one per log track; do not create an ECharts instance per track.
+- Link all track grids to the same vertical depth/time viewport using the chart's zoom and axis-pointer facilities.
+- Use ECharts for scalar curves, axes, grids, shared cursor/crosshair, tooltips, pan, zoom, and basic markers.
+- Use ECharts line sampling, including min-max sampling where applicable, only as a final display optimisation. The backend LOD endpoint remains the primary way to limit data sent to the renderer.
+- Keep Ant Design components in ordinary React DOM for controls and panels.
+- Reserve a dedicated WebGL renderer for high-density image/waveform tracks. It is not part of the first scalar-curve release.
 
-D3 scale utilities may be used for scale calculations, but not as the primary renderer.
+D3 may be used for narrowly useful utilities, but it is not the initial charting layer. D3 is a visualization toolkit rather than a complete multi-track chart component, so using it as the primary renderer would recreate much of the custom-engine cost.
 
 ## 19.3 Level-of-detail pyramid
 
@@ -1484,7 +1488,7 @@ welllog-platform/
 ├── packages/
 │   ├── ts-api-client/          # generated OpenAPI client
 │   ├── arrow-data-client/      # binary query client
-│   └── log-renderer/           # Canvas/WebGL track engine
+│   └── log-renderer/           # ECharts log-view configuration and coordination
 ├── python/
 │   ├── welllog-domain/
 │   ├── welllog-application/
@@ -1537,7 +1541,7 @@ Maintain licensed or internally generated examples covering:
 - N-dimensional DLIS channels;
 - corrupted/truncated DLIS;
 - WITSML 1.4.1.1 XML;
-- WITSML 2.1 packages when implemented.
+- WITSML 2.1 XML/EPC, including generated fixtures and locally licensed examples.
 
 Expected metadata, warnings, checksums, sample counts, and selected values are stored as golden results.
 
@@ -1688,22 +1692,21 @@ The React UI and generated API client are reusable, but a web deployment require
 - batch/halo processing;
 - configurable QC rules.
 
-## Phase 5 — Offline WITSML
+## Phase 5 — Offline WITSML and array preservation
 
 - WITSML 1.4.1.1 XML;
+- WITSML 2.1 XML/EPC;
 - wells, wellbores, logs, trajectories;
 - incremental parsing;
 - object-reference preservation;
-- schema validation and capability reporting.
+- companion HDF5 and multidimensional DLIS storage through Zarr;
+- schema validation and capability reporting;
+- portable CX Log Save As documents.
 
-## Phase 6 — Advanced arrays and WITSML 2.1
+## Phase 6 — Advanced array visualization
 
-- Zarr storage adapter;
-- multidimensional DLIS channels;
 - image and waveform tracks;
-- WebGL renderer;
-- WITSML 2.1 XML;
-- companion HDF5 array support where required.
+- dedicated WebGL renderer for advanced array tracks;
 
 ---
 
@@ -1713,7 +1716,7 @@ The React UI and generated API client are reusable, but a web deployment require
 |---|---|---|
 | Single enormous DLIS frame/channel | May exceed memory | Preflight, channel selection, isolated worker, explicit limitation, investigate lower-level reader |
 | Vendor-noncompliant files | Incorrect or failed import | Preserve warnings, strict/best-effort modes, golden corpus, source graph |
-| Custom log renderer complexity | Schedule risk | Build renderer prototype in Phase 0; keep initial track types limited |
+| ECharts integration limits | Advanced log-track features may outgrow generic chart components | Start with scalar curves and basic markers; retain a separate renderer boundary for future specialized tracks |
 | Too many storage files | Filesystem slowdown | Moderate Parquet grouping; Zarr v3 sharding; benchmark layouts |
 | API/UI feature drift | Automation inconsistency | UI uses generated client; parity rule; contract tests |
 | DuckDB write conflicts | Project corruption or failures | One writer process; workers stage files only; project lock |
@@ -1743,9 +1746,9 @@ The React UI and generated API client are reusable, but a web deployment require
 | Multidimensional data | Zarr v3 through a backend adapter |
 | LAS | `lasio` plus bounded-memory streaming fallback |
 | DLIS | `dlisio` in isolated workers, with explicit large-frame limitation |
-| WITSML | 1.4.1.1 first; 2.1 later; offline files only |
+| WITSML | 1.4.1.1 and 2.1 XML/EPC; offline files only |
 | Processing | NumPy + SciPy + DuckDB/PyArrow batches |
-| Visualization | Canvas 2D scalar engine; WebGL for advanced arrays |
+| Visualization | Apache ECharts Canvas for scalar tracks; dedicated WebGL renderer for advanced arrays |
 | Source data | Managed copy, reference, or supported hard link |
 | Mutations | Non-destructive, job-based, staged, atomic |
 | Security | Loopback token, sandboxed renderer, narrow preload API |

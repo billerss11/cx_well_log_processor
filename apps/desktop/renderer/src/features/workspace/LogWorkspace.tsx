@@ -11,6 +11,7 @@ import {
   findNearestCurveValue,
   formatCurveValue,
   type WorkspaceDataset,
+  type WorkspaceDocument,
 } from "./workspaceTypes";
 
 interface DepthRange {
@@ -20,17 +21,19 @@ interface DepthRange {
 
 interface LogWorkspaceProps {
   readonly dataset: WorkspaceDataset;
+  readonly document: WorkspaceDocument;
   readonly selectedCurveId: string;
   readonly onCurveSelect: (curveId: string) => void;
 }
 
 export function LogWorkspace({
   dataset,
+  document,
   selectedCurveId,
   onCurveSelect,
 }: LogWorkspaceProps) {
-  const fullDepthMinimum = dataset.depthMinimum;
-  const fullDepthMaximum = dataset.depthMaximum;
+  const fullDepthMinimum = dataset.indexMinimum ?? 0;
+  const fullDepthMaximum = dataset.indexMaximum ?? Math.max(dataset.rowCount - 1, 1);
   const fullDepthSpan = fullDepthMaximum - fullDepthMinimum;
   const minimumDepthSpan = Math.max(fullDepthSpan / 100, 0.1);
   const [cursorDepth, setCursorDepth] = useState(
@@ -40,9 +43,12 @@ export function LogWorkspace({
     minimum: fullDepthMinimum,
     maximum: fullDepthMaximum,
   });
-  const selectedCurve = findCurve(dataset.curves, selectedCurveId);
+  const displayableCurves = dataset.curves.filter(
+    (curve) => curve.previewSamples.length > 0,
+  );
+  const selectedCurve = findCurve(displayableCurves, selectedCurveId);
   const displayedCurves = useMemo(() => {
-    const initialCurves = dataset.curves.slice(0, 4);
+    const initialCurves = displayableCurves.slice(0, 4);
     if (initialCurves.some((curve) => curve.id === selectedCurveId)) {
       return initialCurves;
     }
@@ -50,7 +56,7 @@ export function LogWorkspace({
       return [...initialCurves, selectedCurve];
     }
     return [...initialCurves.slice(0, 3), selectedCurve];
-  }, [dataset.curves, selectedCurve, selectedCurveId]);
+  }, [displayableCurves, selectedCurve, selectedCurveId]);
   const cursorValue = findNearestCurveValue(selectedCurve, cursorDepth);
 
   function setDepthSpan(nextSpan: number): void {
@@ -82,7 +88,9 @@ export function LogWorkspace({
         <div>
           <div className="workspace-title-row">
             <Typography.Title level={2}>{dataset.wellName}</Typography.Title>
-            <Tag variant="filled">LAS {dataset.lasVersion}</Tag>
+            <Tag variant="filled">
+              {document.sourceFormat} {document.sourceVersion}
+            </Tag>
           </div>
           <Typography.Text className="workspace-subtitle">
             {fullDepthMinimum.toLocaleString(undefined, {
@@ -92,7 +100,7 @@ export function LogWorkspace({
             {fullDepthMaximum.toLocaleString(undefined, {
               maximumFractionDigits: 2,
             })}{" "}
-            {dataset.depthUnit} MD
+            {dataset.indexUnit} {dataset.indexMnemonic}
           </Typography.Text>
         </div>
 
@@ -143,7 +151,7 @@ export function LogWorkspace({
 
       <div className="curve-toolbar">
         <div className="curve-chip-list" aria-label="Visible curves">
-          {dataset.curves.map((curve) => (
+          {displayableCurves.map((curve) => (
             <button
               className={
                 selectedCurveId === curve.id
@@ -176,7 +184,7 @@ export function LogWorkspace({
           <WellLogPreview
             curves={displayedCurves}
             cursorDepth={cursorDepth}
-            depthUnit={dataset.depthUnit}
+            depthUnit={dataset.indexUnit}
             onCursorChange={setCursorDepth}
             onCurveSelect={onCurveSelect}
             selectedCurveId={selectedCurveId}
@@ -190,13 +198,13 @@ export function LogWorkspace({
           Visible range{" "}
           <strong>
             {visibleRange.minimum.toFixed(1)} —{" "}
-            {visibleRange.maximum.toFixed(1)} {dataset.depthUnit}
+            {visibleRange.maximum.toFixed(1)} {dataset.indexUnit}
           </strong>
         </span>
         <span>
           Cursor{" "}
           <strong>
-            {cursorDepth.toFixed(2)} {dataset.depthUnit} MD
+            {cursorDepth.toFixed(2)} {dataset.indexUnit} {dataset.indexMnemonic}
           </strong>
         </span>
         <span>LOD · screen optimized</span>

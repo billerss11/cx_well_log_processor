@@ -1,32 +1,20 @@
 import "@testing-library/jest-dom/vitest";
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { App as AntDesignApp } from "antd";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "./App";
 
-const selectLasFile = vi.fn<() => Promise<string | null>>();
+const desktopMocks = vi.hoisted(() => ({
+  selectCxlogDestination: vi.fn<() => Promise<string | null>>(),
+  selectWellLogFile: vi.fn<() => Promise<string | null>>(),
+}));
 
-vi.mock("@welllog/ts-api-client", () => ({
-  client: {
-    setConfig: vi.fn(),
-  },
-  getHealth: vi.fn().mockResolvedValue({
-    data: {
-      api_version: "v1",
-      engine_version: "0.1.0",
-      status: "ok",
-    },
-  }),
-  importLas: vi.fn().mockResolvedValue({
-    data: {
+const testData = vi.hoisted(() => ({
+  documentSummary: {
+    datasets: [
+    {
       curves: [
         {
           description: "Gamma Ray",
@@ -36,35 +24,92 @@ vi.mock("@welllog/ts-api-client", () => ({
           mnemonic: "GR",
           null_count: 3,
           preview_samples: [
-            { depth: 1750, value: 86.2 },
-            { depth: 2143, value: 74.1 },
+            { index: 1750, value: 86.2 },
+            { index: 2143, value: 74.1 },
           ],
           sample_count: 3931,
+          sample_shape: [],
+          storage_kind: "parquet",
           unit: "gAPI",
         },
       ],
-      depth_maximum: 2143,
-      depth_minimum: 1750,
-      depth_mnemonic: "DEPT",
-      depth_unit: "m",
-      field_name: "Geographe",
-      file_size_bytes: 1_105_604,
-      las_version: "2.0",
+      id: "dataset-las-1",
+      index_kind: "measured_depth",
+      index_maximum: 2143,
+      index_minimum: 1750,
+      index_mnemonic: "DEPT",
+      index_unit: "m",
+      kind: "log",
+      name: "LAS 2.0",
       row_count: 3931,
-      source_file: "test.las",
-      warnings: [],
       well_name: "Geographe 2 L1",
+      wellbore_name: "Imported wellbore",
+    },
+  ],
+  field_name: "Geographe",
+  id: "document-1",
+  preserved_object_count: 1,
+  saved: false,
+  source_file: "test.las",
+  source_format: "LAS",
+  source_version: "2.0",
+    warnings: [],
+  } as const,
+}));
+
+vi.mock("@welllog/ts-api-client", () => ({
+  client: { setConfig: vi.fn() },
+  closeDocument: vi.fn().mockResolvedValue({}),
+  getDocument: vi.fn().mockResolvedValue({
+    data: { ...testData.documentSummary, saved: true },
+  }),
+  getHealth: vi.fn().mockResolvedValue({
+    data: {
+      api_version: "v1",
+      engine_version: "0.1.0",
+      status: "ok",
     },
   }),
+  getJob: vi.fn().mockImplementation(
+    (options: { path: { job_id: string } }) =>
+      Promise.resolve({
+        data:
+          options.path.job_id === "open-job"
+            ? {
+                document: testData.documentSummary,
+                id: "open-job",
+                message: "Document opened",
+                operation: "open_document",
+                progress: 1,
+                state: "COMPLETED",
+              }
+            : {
+                id: "save-job",
+                message: "CX Log package saved",
+                operation: "save_document",
+                progress: 1,
+                saved_path: "J:\\sample\\test.cxlog",
+                state: "COMPLETED",
+              },
+      }),
+  ),
+  openDocument: vi.fn().mockResolvedValue({ data: { job_id: "open-job" } }),
+  saveDocumentAs: vi
+    .fn()
+    .mockResolvedValue({ data: { job_id: "save-job" } }),
 }));
 
 beforeEach(() => {
-  selectLasFile.mockResolvedValue("J:\\sample\\test.las");
+  desktopMocks.selectWellLogFile.mockResolvedValue("J:\\sample\\test.las");
+  desktopMocks.selectCxlogDestination.mockResolvedValue(
+    "J:\\sample\\test.cxlog",
+  );
   Object.defineProperty(window, "welllogDesktop", {
     configurable: true,
     value: {
       platform: "win32",
-      selectLasFile,
+      selectCxlogDestination: desktopMocks.selectCxlogDestination,
+      selectWellLogFile: desktopMocks.selectWellLogFile,
       versions: { electron: "43.2.0" },
     },
   });
@@ -83,39 +128,35 @@ function renderApp() {
   );
 }
 
-test("shows the shared engine version", async () => {
+test("starts empty and shows the shared engine version", async () => {
   renderApp();
 
   expect(
     screen.getByRole("heading", { name: "CX Well Log Processor" }),
   ).toBeInTheDocument();
-  expect(
-    await screen.findByText("Engine 0.1.0 · API v1"),
-  ).toBeInTheDocument();
+  expect(screen.getAllByText("No document open").length).toBeGreaterThan(0);
+  expect(await screen.findByText("Engine 0.1.0 · API v1")).toBeInTheDocument();
 });
 
-test("selects a curve and updates its details", () => {
+test("opens a selected well-log file into the workspace", async () => {
   renderApp();
 
-  fireEvent.click(screen.getByRole("button", { name: "RT" }));
-
-  const inspector = screen.getByRole("complementary", {
-    name: "Curve inspector",
-  });
-  expect(
-    within(inspector).getByRole("heading", { name: "RT" }),
-  ).toBeInTheDocument();
-  expect(within(inspector).getByText("Deep resistivity")).toBeInTheDocument();
-});
-
-test("imports a selected LAS file into the workspace", async () => {
-  renderApp();
-
-  fireEvent.click(screen.getByRole("button", { name: /Import data/i }));
+  fireEvent.click(screen.getAllByRole("button", { name: /Open Well Log/i })[0]!);
 
   expect(
     await screen.findByRole("heading", { name: "Geographe 2 L1" }),
   ).toBeInTheDocument();
   expect(screen.getAllByText("test.las").length).toBeGreaterThan(0);
-  expect(selectLasFile).toHaveBeenCalledOnce();
+  expect(desktopMocks.selectWellLogFile).toHaveBeenCalledOnce();
+});
+
+test("saves the open document as a CX Log package", async () => {
+  renderApp();
+  fireEvent.click(screen.getAllByRole("button", { name: /Open Well Log/i })[0]!);
+  await screen.findByRole("heading", { name: "Geographe 2 L1" });
+
+  fireEvent.click(screen.getByRole("button", { name: /Save As/i }));
+
+  expect(await screen.findByText("LAS · 1 datasets · saved")).toBeInTheDocument();
+  expect(desktopMocks.selectCxlogDestination).toHaveBeenCalledWith("test.cxlog");
 });

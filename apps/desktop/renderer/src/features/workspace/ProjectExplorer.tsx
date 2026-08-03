@@ -2,92 +2,86 @@ import SearchOutlined from "@ant-design/icons/SearchOutlined";
 import { Input, Tree, Typography, type TreeDataNode } from "antd";
 import { useMemo, useState } from "react";
 
-import type { WorkspaceDataset } from "./workspaceTypes";
+import type { WorkspaceDocument } from "./workspaceTypes";
 
-function createProjectTreeData(
-  dataset: WorkspaceDataset,
+function createDocumentTreeData(
+  document: WorkspaceDocument,
   filterTerm: string,
 ): TreeDataNode[] {
   const normalizedFilter = filterTerm.trim().toLocaleLowerCase();
-  const visibleCurves = normalizedFilter
-    ? dataset.curves.filter((curve) =>
-        `${curve.mnemonic} ${curve.description} ${curve.unit}`
-          .toLocaleLowerCase()
-          .includes(normalizedFilter),
-      )
-    : dataset.curves;
-
   return [
     {
-      key: "project",
-      title: dataset.projectName,
-      children: [
-        {
-          key: "well",
-          title: dataset.wellName,
-          children: [
-            {
-              key: "wellbore",
-              title: "Imported wellbore",
-              children: [
-                {
-                  key: "dataset",
-                  title: dataset.datasetName,
-                  children: visibleCurves.map((curve) => ({
-                    key: curve.id,
-                    title: (
-                      <span className="curve-tree-label">
-                        <span
-                          aria-hidden="true"
-                          className="curve-swatch"
-                          style={{ backgroundColor: curve.color }}
-                        />
-                        <span>{curve.mnemonic}</span>
-                        <span className="curve-tree-unit">{curve.unit}</span>
-                      </span>
-                    ),
-                  })),
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      key: "document",
+      title: document.fieldName,
+      children: document.datasets.map((dataset) => ({
+        key: dataset.id,
+        title: `${dataset.wellName} · ${dataset.name}`,
+        children: dataset.curves
+          .filter(
+            (curve) =>
+              !normalizedFilter ||
+              `${curve.mnemonic} ${curve.description} ${curve.unit}`
+                .toLocaleLowerCase()
+                .includes(normalizedFilter),
+          )
+          .map((curve) => ({
+            disabled:
+              curve.previewSamples.length === 0 ||
+              dataset.indexMinimum === null ||
+              dataset.indexMaximum === null,
+            key: `${dataset.id}:${curve.id}`,
+            title: (
+              <span className="curve-tree-label">
+                <span
+                  aria-hidden="true"
+                  className="curve-swatch"
+                  style={{ backgroundColor: curve.color }}
+                />
+                <span>{curve.mnemonic}</span>
+                <span className="curve-tree-unit">
+                  {curve.sampleShape.length > 0 ? "array" : curve.unit}
+                </span>
+              </span>
+            ),
+          })),
+      })),
     },
   ];
 }
 
 interface ProjectExplorerProps {
-  readonly dataset: WorkspaceDataset;
+  readonly document: WorkspaceDocument;
+  readonly selectedDatasetId: string;
   readonly selectedCurveId: string;
-  readonly onCurveSelect: (curveId: string) => void;
+  readonly onCurveSelect: (datasetId: string, curveId: string) => void;
 }
 
 export function ProjectExplorer({
-  dataset,
+  document,
+  selectedDatasetId,
   selectedCurveId,
   onCurveSelect,
 }: ProjectExplorerProps) {
   const [filterTerm, setFilterTerm] = useState("");
-  const projectTreeData = useMemo(
-    () => createProjectTreeData(dataset, filterTerm),
-    [dataset, filterTerm],
+  const treeData = useMemo(
+    () => createDocumentTreeData(document, filterTerm),
+    [document, filterTerm],
   );
 
   return (
-    <aside className="project-pane" aria-label="Project explorer">
+    <aside className="project-pane" aria-label="Document explorer">
       <div className="pane-heading">
         <div>
           <Typography.Text className="pane-eyebrow">
-            Project explorer
+            Document explorer
           </Typography.Text>
-          <Typography.Title level={2}>Local workspace</Typography.Title>
+          <Typography.Title level={2}>Imported content</Typography.Title>
         </div>
       </div>
 
       <Input
         allowClear
-        aria-label="Filter project"
+        aria-label="Filter curves"
         className="project-filter"
         onChange={(event) => setFilterTerm(event.target.value)}
         placeholder="Filter curves"
@@ -101,26 +95,32 @@ export function ProjectExplorer({
           defaultExpandAll
           onSelect={(selectedKeys) => {
             const selectedKey = selectedKeys[0];
-            if (
-              typeof selectedKey === "string" &&
-              dataset.curves.some((curve) => curve.id === selectedKey)
-            ) {
-              onCurveSelect(selectedKey);
+            if (typeof selectedKey !== "string" || !selectedKey.includes(":")) {
+              return;
             }
+            const separator = selectedKey.indexOf(":");
+            onCurveSelect(
+              selectedKey.slice(0, separator),
+              selectedKey.slice(separator + 1),
+            );
           }}
-          selectedKeys={[selectedCurveId]}
-          treeData={projectTreeData}
+          selectedKeys={
+            selectedDatasetId && selectedCurveId
+              ? [`${selectedDatasetId}:${selectedCurveId}`]
+              : []
+          }
+          treeData={treeData}
         />
       </div>
 
       <div className="source-summary">
         <span aria-hidden="true" className="source-file-mark">
-          LAS
+          {document.sourceFormat}
         </span>
         <div>
-          <strong>{dataset.sourceFile}</strong>
+          <strong>{document.sourceFile}</strong>
           <span>
-            {dataset.rowCount.toLocaleString()} rows · loaded in session
+            {document.datasets.length.toLocaleString()} datasets · {document.saved ? "saved" : "session"}
           </span>
         </div>
       </div>

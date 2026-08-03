@@ -10,14 +10,16 @@ import {
   formatCurveValue,
   type CurveDefinition,
   type WorkspaceDataset,
+  type WorkspaceDocument,
 } from "./workspaceTypes";
 
 interface CurveInspectorProps {
   readonly curve: CurveDefinition;
   readonly dataset: WorkspaceDataset;
+  readonly document: WorkspaceDocument;
 }
 
-export function CurveInspector({ curve, dataset }: CurveInspectorProps) {
+export function CurveInspector({ curve, dataset, document }: CurveInspectorProps) {
   const validSampleCount = curve.sampleCount - curve.nullCount;
   const validPercent =
     curve.sampleCount > 0 ? (validSampleCount / curve.sampleCount) * 100 : 0;
@@ -43,6 +45,11 @@ export function CurveInspector({ curve, dataset }: CurveInspectorProps) {
       label: "Samples",
       children: curve.sampleCount.toLocaleString(),
     },
+    {
+      key: "storage",
+      label: "Internal storage",
+      children: curve.storageKind,
+    },
   ];
 
   return (
@@ -64,7 +71,7 @@ export function CurveInspector({ curve, dataset }: CurveInspectorProps) {
         />
         <div>
           <strong>{curve.description}</strong>
-          <span>{dataset.datasetName}</span>
+          <span>{dataset.name}</span>
         </div>
         <Tag color="success" variant="filled">
           Source
@@ -123,15 +130,15 @@ export function CurveInspector({ curve, dataset }: CurveInspectorProps) {
         <dl>
           <div>
             <dt>Source</dt>
-            <dd>{dataset.sourceFile}</dd>
+            <dd>{document.sourceFile}</dd>
           </div>
           <div>
-            <dt>LAS version</dt>
-            <dd>{dataset.lasVersion}</dd>
+            <dt>Source format</dt>
+            <dd>{document.sourceFormat} {document.sourceVersion}</dd>
           </div>
           <div>
             <dt>Status</dt>
-            <dd>Session preview</dd>
+            <dd>{document.saved ? "Saved CX Log" : "Unsaved session"}</dd>
           </div>
         </dl>
       </section>

@@ -14,24 +14,35 @@ export interface CurveDefinition {
   readonly maximum: number | null;
   readonly sampleCount: number;
   readonly nullCount: number;
+  readonly sampleShape: readonly number[];
+  readonly storageKind: "parquet" | "zarr" | "metadata_only";
   readonly previewSamples: readonly CurveSample[];
 }
 
 export interface WorkspaceDataset {
   readonly id: string;
-  readonly projectName: string;
+  readonly name: string;
+  readonly kind: string;
   readonly wellName: string;
-  readonly fieldName: string;
-  readonly datasetName: string;
-  readonly sourceFile: string;
-  readonly sourceFormat: "LAS";
-  readonly lasVersion: string;
+  readonly wellboreName: string;
   readonly rowCount: number;
-  readonly depthMnemonic: string;
-  readonly depthUnit: string;
-  readonly depthMinimum: number;
-  readonly depthMaximum: number;
+  readonly indexMnemonic: string;
+  readonly indexUnit: string;
+  readonly indexKind: "measured_depth" | "time" | "sample" | "other";
+  readonly indexMinimum: number | null;
+  readonly indexMaximum: number | null;
   readonly curves: readonly CurveDefinition[];
+}
+
+export interface WorkspaceDocument {
+  readonly id: string;
+  readonly sourceFile: string;
+  readonly sourceFormat: "LAS" | "DLIS" | "WITSML";
+  readonly sourceVersion: string;
+  readonly fieldName: string;
+  readonly saved: boolean;
+  readonly preservedObjectCount: number;
+  readonly datasets: readonly WorkspaceDataset[];
   readonly warnings: readonly string[];
 }
 
@@ -39,11 +50,26 @@ export function findCurve(
   curves: readonly CurveDefinition[],
   curveId: string,
 ): CurveDefinition {
-  const firstCurve = curves[0];
+  const displayableCurves = curves.filter(
+    (curve) => curve.previewSamples.length > 0,
+  );
+  const firstCurve = displayableCurves[0];
   if (!firstCurve) {
-    throw new Error("The workspace dataset does not contain any curves.");
+    throw new Error("This dataset does not contain scalar preview curves.");
   }
-  return curves.find((curve) => curve.id === curveId) ?? firstCurve;
+  return displayableCurves.find((curve) => curve.id === curveId) ?? firstCurve;
+}
+
+export function findFirstDisplayableDataset(
+  document: WorkspaceDocument,
+): WorkspaceDataset | undefined {
+  return document.datasets.find(
+    (dataset) =>
+      dataset.indexMinimum !== null &&
+      dataset.indexMaximum !== null &&
+      dataset.indexMaximum > dataset.indexMinimum &&
+      dataset.curves.some((curve) => curve.previewSamples.length > 0),
+  );
 }
 
 export function formatCurveValue(value: number | null): string {

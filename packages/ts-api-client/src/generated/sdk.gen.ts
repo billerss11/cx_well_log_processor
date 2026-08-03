@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetHealthResponses, ImportLasData, ImportLasErrors, ImportLasResponses } from './types.gen';
+import type { CancelJobData, CancelJobErrors, CancelJobResponses, CloseDocumentData, CloseDocumentErrors, CloseDocumentResponses, GetDocumentData, GetDocumentErrors, GetDocumentResponses, GetHealthData, GetHealthResponses, GetJobData, GetJobErrors, GetJobResponses, ImportLasData, ImportLasErrors, ImportLasResponses, OpenDocumentData, OpenDocumentErrors, OpenDocumentResponses, SaveDocumentAsData, SaveDocumentAsErrors, SaveDocumentAsResponses, VerifyPackageData, VerifyPackageErrors, VerifyPackageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,52 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+/**
+ * Open Document
+ */
+export const openDocument = <ThrowOnError extends boolean = false>(options: Options<OpenDocumentData, ThrowOnError>): RequestResult<OpenDocumentResponses, OpenDocumentErrors, ThrowOnError> => (options.client ?? client).post<OpenDocumentResponses, OpenDocumentErrors, ThrowOnError>({
+    url: '/api/v1/documents/open',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Verify Package
+ */
+export const verifyPackage = <ThrowOnError extends boolean = false>(options: Options<VerifyPackageData, ThrowOnError>): RequestResult<VerifyPackageResponses, VerifyPackageErrors, ThrowOnError> => (options.client ?? client).post<VerifyPackageResponses, VerifyPackageErrors, ThrowOnError>({
+    url: '/api/v1/documents/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Document
+ */
+export const getDocument = <ThrowOnError extends boolean = false>(options: Options<GetDocumentData, ThrowOnError>): RequestResult<GetDocumentResponses, GetDocumentErrors, ThrowOnError> => (options.client ?? client).get<GetDocumentResponses, GetDocumentErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}', ...options });
+
+/**
+ * Close Document
+ */
+export const closeDocument = <ThrowOnError extends boolean = false>(options: Options<CloseDocumentData, ThrowOnError>): RequestResult<CloseDocumentResponses, CloseDocumentErrors, ThrowOnError> => (options.client ?? client).post<CloseDocumentResponses, CloseDocumentErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}/close', ...options });
+
+/**
+ * Save Document As
+ */
+export const saveDocumentAs = <ThrowOnError extends boolean = false>(options: Options<SaveDocumentAsData, ThrowOnError>): RequestResult<SaveDocumentAsResponses, SaveDocumentAsErrors, ThrowOnError> => (options.client ?? client).post<SaveDocumentAsResponses, SaveDocumentAsErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/save-as',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Health
@@ -34,3 +80,13 @@ export const importLas = <ThrowOnError extends boolean = false>(options: Options
         ...options.headers
     }
 });
+
+/**
+ * Get Job
+ */
+export const getJob = <ThrowOnError extends boolean = false>(options: Options<GetJobData, ThrowOnError>): RequestResult<GetJobResponses, GetJobErrors, ThrowOnError> => (options.client ?? client).get<GetJobResponses, GetJobErrors, ThrowOnError>({ url: '/api/v1/jobs/{job_id}', ...options });
+
+/**
+ * Cancel Job
+ */
+export const cancelJob = <ThrowOnError extends boolean = false>(options: Options<CancelJobData, ThrowOnError>): RequestResult<CancelJobResponses, CancelJobErrors, ThrowOnError> => (options.client ?? client).post<CancelJobResponses, CancelJobErrors, ThrowOnError>({ url: '/api/v1/jobs/{job_id}/cancel', ...options });

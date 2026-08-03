@@ -1,6 +1,259 @@
 {
   "components": {
     "schemas": {
+      "CurvePreviewSample": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "title": "Index",
+            "type": "number"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "index",
+          "value"
+        ],
+        "title": "CurvePreviewSample",
+        "type": "object"
+      },
+      "DocumentCurveSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "mnemonic": {
+            "title": "Mnemonic",
+            "type": "string"
+          },
+          "null_count": {
+            "title": "Null Count",
+            "type": "integer"
+          },
+          "preview_samples": {
+            "items": {
+              "$ref": "#/components/schemas/CurvePreviewSample"
+            },
+            "title": "Preview Samples",
+            "type": "array"
+          },
+          "sample_count": {
+            "title": "Sample Count",
+            "type": "integer"
+          },
+          "sample_shape": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Sample Shape",
+            "type": "array"
+          },
+          "storage_kind": {
+            "$ref": "#/components/schemas/StorageKind"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "mnemonic",
+          "unit",
+          "description",
+          "minimum",
+          "maximum",
+          "sample_count",
+          "null_count",
+          "sample_shape",
+          "storage_kind",
+          "preview_samples"
+        ],
+        "title": "DocumentCurveSummary",
+        "type": "object"
+      },
+      "DocumentDatasetSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "curves": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentCurveSummary"
+            },
+            "title": "Curves",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "index_kind": {
+            "$ref": "#/components/schemas/IndexKind"
+          },
+          "index_maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Maximum"
+          },
+          "index_minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Minimum"
+          },
+          "index_mnemonic": {
+            "title": "Index Mnemonic",
+            "type": "string"
+          },
+          "index_unit": {
+            "title": "Index Unit",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          },
+          "well_name": {
+            "title": "Well Name",
+            "type": "string"
+          },
+          "wellbore_name": {
+            "title": "Wellbore Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "well_name",
+          "wellbore_name",
+          "row_count",
+          "index_mnemonic",
+          "index_unit",
+          "index_kind",
+          "index_minimum",
+          "index_maximum",
+          "curves"
+        ],
+        "title": "DocumentDatasetSummary",
+        "type": "object"
+      },
+      "DocumentSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentDatasetSummary"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "field_name": {
+            "title": "Field Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "preserved_object_count": {
+            "title": "Preserved Object Count",
+            "type": "integer"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "source_file": {
+            "title": "Source File",
+            "type": "string"
+          },
+          "source_format": {
+            "$ref": "#/components/schemas/SourceFormat"
+          },
+          "source_version": {
+            "title": "Source Version",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "source_file",
+          "source_format",
+          "source_version",
+          "field_name",
+          "saved",
+          "datasets",
+          "preserved_object_count",
+          "warnings"
+        ],
+        "title": "DocumentSummary",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -50,6 +303,109 @@
           "detail"
         ],
         "title": "ImportErrorResponse",
+        "type": "object"
+      },
+      "IndexKind": {
+        "enum": [
+          "measured_depth",
+          "time",
+          "sample",
+          "other"
+        ],
+        "title": "IndexKind",
+        "type": "string"
+      },
+      "JobAcceptedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "JobAcceptedResponse",
+        "type": "object"
+      },
+      "JobState": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "CANCELLING",
+          "CANCELLED",
+          "FAILED",
+          "COMPLETED"
+        ],
+        "title": "JobState",
+        "type": "string"
+      },
+      "JobStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "progress": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "type": "number"
+          },
+          "saved_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved Path"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState"
+          }
+        },
+        "required": [
+          "id",
+          "operation",
+          "state",
+          "progress",
+          "message"
+        ],
+        "title": "JobStatusResponse",
         "type": "object"
       },
       "LasCurveSummary": {
@@ -246,6 +602,100 @@
         "title": "LasPreviewSample",
         "type": "object"
       },
+      "OpenDocumentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "max_preview_points": {
+            "default": 800,
+            "maximum": 2000.0,
+            "minimum": 100.0,
+            "title": "Max Preview Points",
+            "type": "integer"
+          },
+          "source_path": {
+            "minLength": 1,
+            "title": "Source Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_path"
+        ],
+        "title": "OpenDocumentRequest",
+        "type": "object"
+      },
+      "PackageVerificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_count": {
+            "title": "Asset Count",
+            "type": "integer"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "package_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Version"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "package_version",
+          "asset_count",
+          "errors"
+        ],
+        "title": "PackageVerificationResponse",
+        "type": "object"
+      },
+      "SaveDocumentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "destination_path": {
+            "minLength": 1,
+            "title": "Destination Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination_path"
+        ],
+        "title": "SaveDocumentRequest",
+        "type": "object"
+      },
+      "SourceFormat": {
+        "enum": [
+          "LAS",
+          "DLIS",
+          "WITSML"
+        ],
+        "title": "SourceFormat",
+        "type": "string"
+      },
+      "StorageKind": {
+        "enum": [
+          "parquet",
+          "zarr",
+          "metadata_only"
+        ],
+        "title": "StorageKind",
+        "type": "string"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -285,6 +735,21 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "VerifyPackageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "package_path": {
+            "minLength": 1,
+            "title": "Package Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "package_path"
+        ],
+        "title": "VerifyPackageRequest",
+        "type": "object"
       }
     }
   },
@@ -294,6 +759,217 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/documents/open": {
+      "post": {
+        "operationId": "openDocument",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/verify": {
+      "post": {
+        "operationId": "verifyPackage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPackageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackageVerificationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Package",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}": {
+      "get": {
+        "operationId": "getDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/close": {
+      "post": {
+        "operationId": "closeDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/save-as": {
+      "post": {
+        "operationId": "saveDocumentAs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Document As",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "getHealth",
@@ -373,6 +1049,90 @@
         "summary": "Import Las Route",
         "tags": [
           "imports"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancelJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Job",
+        "tags": [
+          "jobs"
         ]
       }
     }

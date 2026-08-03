@@ -5,6 +5,157 @@ export type ClientOptions = {
 };
 
 /**
+ * CurvePreviewSample
+ */
+export type CurvePreviewSample = {
+    /**
+     * Index
+     */
+    index: number;
+    /**
+     * Value
+     */
+    value: number | null;
+};
+
+/**
+ * DocumentCurveSummary
+ */
+export type DocumentCurveSummary = {
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Maximum
+     */
+    maximum: number | null;
+    /**
+     * Minimum
+     */
+    minimum: number | null;
+    /**
+     * Mnemonic
+     */
+    mnemonic: string;
+    /**
+     * Null Count
+     */
+    null_count: number;
+    /**
+     * Preview Samples
+     */
+    preview_samples: Array<CurvePreviewSample>;
+    /**
+     * Sample Count
+     */
+    sample_count: number;
+    /**
+     * Sample Shape
+     */
+    sample_shape: Array<number>;
+    storage_kind: StorageKind;
+    /**
+     * Unit
+     */
+    unit: string;
+};
+
+/**
+ * DocumentDatasetSummary
+ */
+export type DocumentDatasetSummary = {
+    /**
+     * Curves
+     */
+    curves: Array<DocumentCurveSummary>;
+    /**
+     * Id
+     */
+    id: string;
+    index_kind: IndexKind;
+    /**
+     * Index Maximum
+     */
+    index_maximum: number | null;
+    /**
+     * Index Minimum
+     */
+    index_minimum: number | null;
+    /**
+     * Index Mnemonic
+     */
+    index_mnemonic: string;
+    /**
+     * Index Unit
+     */
+    index_unit: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Well Name
+     */
+    well_name: string;
+    /**
+     * Wellbore Name
+     */
+    wellbore_name: string;
+};
+
+/**
+ * DocumentSummary
+ */
+export type DocumentSummary = {
+    /**
+     * Datasets
+     */
+    datasets: Array<DocumentDatasetSummary>;
+    /**
+     * Field Name
+     */
+    field_name: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Preserved Object Count
+     */
+    preserved_object_count: number;
+    /**
+     * Saved
+     */
+    saved: boolean;
+    /**
+     * Source File
+     */
+    source_file: string;
+    source_format: SourceFormat;
+    /**
+     * Source Version
+     */
+    source_version: string;
+    /**
+     * Warnings
+     */
+    warnings: Array<string>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -40,6 +191,58 @@ export type ImportErrorResponse = {
      * Detail
      */
     detail: string;
+};
+
+/**
+ * IndexKind
+ */
+export type IndexKind = 'measured_depth' | 'time' | 'sample' | 'other';
+
+/**
+ * JobAcceptedResponse
+ */
+export type JobAcceptedResponse = {
+    /**
+     * Job Id
+     */
+    job_id: string;
+};
+
+/**
+ * JobState
+ */
+export type JobState = 'QUEUED' | 'RUNNING' | 'CANCELLING' | 'CANCELLED' | 'FAILED' | 'COMPLETED';
+
+/**
+ * JobStatusResponse
+ */
+export type JobStatusResponse = {
+    document?: DocumentSummary | null;
+    /**
+     * Error
+     */
+    error?: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Operation
+     */
+    operation: string;
+    /**
+     * Progress
+     */
+    progress: number;
+    /**
+     * Saved Path
+     */
+    saved_path?: string | null;
+    state: JobState;
 };
 
 /**
@@ -167,6 +370,62 @@ export type LasPreviewSample = {
 };
 
 /**
+ * OpenDocumentRequest
+ */
+export type OpenDocumentRequest = {
+    /**
+     * Max Preview Points
+     */
+    max_preview_points?: number;
+    /**
+     * Source Path
+     */
+    source_path: string;
+};
+
+/**
+ * PackageVerificationResponse
+ */
+export type PackageVerificationResponse = {
+    /**
+     * Asset Count
+     */
+    asset_count: number;
+    /**
+     * Errors
+     */
+    errors: Array<string>;
+    /**
+     * Package Version
+     */
+    package_version: string | null;
+    /**
+     * Valid
+     */
+    valid: boolean;
+};
+
+/**
+ * SaveDocumentRequest
+ */
+export type SaveDocumentRequest = {
+    /**
+     * Destination Path
+     */
+    destination_path: string;
+};
+
+/**
+ * SourceFormat
+ */
+export type SourceFormat = 'LAS' | 'DLIS' | 'WITSML';
+
+/**
+ * StorageKind
+ */
+export type StorageKind = 'parquet' | 'zarr' | 'metadata_only';
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -193,6 +452,156 @@ export type ValidationError = {
      */
     type: string;
 };
+
+/**
+ * VerifyPackageRequest
+ */
+export type VerifyPackageRequest = {
+    /**
+     * Package Path
+     */
+    package_path: string;
+};
+
+export type OpenDocumentData = {
+    body: OpenDocumentRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/documents/open';
+};
+
+export type OpenDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OpenDocumentError = OpenDocumentErrors[keyof OpenDocumentErrors];
+
+export type OpenDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    202: JobAcceptedResponse;
+};
+
+export type OpenDocumentResponse = OpenDocumentResponses[keyof OpenDocumentResponses];
+
+export type VerifyPackageData = {
+    body: VerifyPackageRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/documents/verify';
+};
+
+export type VerifyPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type VerifyPackageError = VerifyPackageErrors[keyof VerifyPackageErrors];
+
+export type VerifyPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: PackageVerificationResponse;
+};
+
+export type VerifyPackageResponse = VerifyPackageResponses[keyof VerifyPackageResponses];
+
+export type GetDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}';
+};
+
+export type GetDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDocumentError = GetDocumentErrors[keyof GetDocumentErrors];
+
+export type GetDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentSummary;
+};
+
+export type GetDocumentResponse = GetDocumentResponses[keyof GetDocumentResponses];
+
+export type CloseDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/close';
+};
+
+export type CloseDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CloseDocumentError = CloseDocumentErrors[keyof CloseDocumentErrors];
+
+export type CloseDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type CloseDocumentResponse = CloseDocumentResponses[keyof CloseDocumentResponses];
+
+export type SaveDocumentAsData = {
+    body: SaveDocumentRequest;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/save-as';
+};
+
+export type SaveDocumentAsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SaveDocumentAsError = SaveDocumentAsErrors[keyof SaveDocumentAsErrors];
+
+export type SaveDocumentAsResponses = {
+    /**
+     * Successful Response
+     */
+    202: JobAcceptedResponse;
+};
+
+export type SaveDocumentAsResponse = SaveDocumentAsResponses[keyof SaveDocumentAsResponses];
 
 export type GetHealthData = {
     body?: never;
@@ -242,3 +651,63 @@ export type ImportLasResponses = {
 };
 
 export type ImportLasResponse = ImportLasResponses[keyof ImportLasResponses];
+
+export type GetJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/jobs/{job_id}';
+};
+
+export type GetJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetJobError = GetJobErrors[keyof GetJobErrors];
+
+export type GetJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobStatusResponse;
+};
+
+export type GetJobResponse = GetJobResponses[keyof GetJobResponses];
+
+export type CancelJobData = {
+    body?: never;
+    path: {
+        /**
+         * Job Id
+         */
+        job_id: string;
+    };
+    query?: never;
+    url: '/api/v1/jobs/{job_id}/cancel';
+};
+
+export type CancelJobErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CancelJobError = CancelJobErrors[keyof CancelJobErrors];
+
+export type CancelJobResponses = {
+    /**
+     * Successful Response
+     */
+    200: JobStatusResponse;
+};
+
+export type CancelJobResponse = CancelJobResponses[keyof CancelJobResponses];

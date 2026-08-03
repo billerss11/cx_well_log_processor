@@ -1,8 +1,12 @@
-import ImportOutlined from "@ant-design/icons/ImportOutlined";
+import CloseOutlined from "@ant-design/icons/CloseOutlined";
+import FolderOpenOutlined from "@ant-design/icons/FolderOpenOutlined";
+import SaveOutlined from "@ant-design/icons/SaveOutlined";
 import SettingOutlined from "@ant-design/icons/SettingOutlined";
 import {
   App as AntDesignApp,
   Button,
+  Empty,
+  Progress,
   Splitter,
   Tooltip,
   Typography,
@@ -11,46 +15,94 @@ import { useState } from "react";
 
 import "./app.css";
 import { CurveInspector } from "./features/workspace/CurveInspector";
-import { demoDataset } from "./features/workspace/demoData";
 import { LogWorkspace } from "./features/workspace/LogWorkspace";
 import { ProjectExplorer } from "./features/workspace/ProjectExplorer";
-import { findCurve } from "./features/workspace/workspaceTypes";
+import {
+  findFirstDisplayableDataset,
+  type WorkspaceDocument,
+} from "./features/workspace/workspaceTypes";
+import { useDocument } from "./hooks/useDocument";
 import { useEngineStatus } from "./hooks/useEngineStatus";
-import { useLasImport } from "./hooks/useLasImport";
 
 export function App() {
   const { message } = AntDesignApp.useApp();
   const engineStatus = useEngineStatus();
-  const { importing, selectAndImportLas } = useLasImport();
-  const [dataset, setDataset] = useState(demoDataset);
-  const [selectedCurveId, setSelectedCurveId] = useState(
-    demoDataset.curves[0]?.id ?? "curve-gr",
+  const operations = useDocument();
+  const [document, setDocument] = useState<WorkspaceDocument | null>(null);
+  const [selectedDatasetId, setSelectedDatasetId] = useState("");
+  const [selectedCurveId, setSelectedCurveId] = useState("");
+  const activeDataset = document?.datasets.find(
+    (dataset) => dataset.id === selectedDatasetId,
   );
-  const selectedCurve = findCurve(dataset.curves, selectedCurveId);
+  const selectedCurve = activeDataset?.curves.find(
+    (curve) => curve.id === selectedCurveId,
+  );
   const platform = window.welllogDesktop?.platform ?? "desktop";
 
-  async function handleImport(): Promise<void> {
+  function selectInitialCurve(nextDocument: WorkspaceDocument): void {
+    const dataset = findFirstDisplayableDataset(nextDocument);
+    const curve =
+      dataset?.curves.find(
+        (item) =>
+          item.previewSamples.length > 0 &&
+          item.mnemonic.toLocaleUpperCase() === "GR",
+      ) ?? dataset?.curves.find((item) => item.previewSamples.length > 0);
+    setSelectedDatasetId(dataset?.id ?? "");
+    setSelectedCurveId(curve?.id ?? "");
+  }
+
+  async function handleOpen(): Promise<void> {
     try {
-      const importedDataset = await selectAndImportLas();
-      if (!importedDataset) {
+      const openedDocument = await operations.selectAndOpenDocument();
+      if (!openedDocument) {
         return;
       }
-
-      const initialCurve =
-        importedDataset.curves.find(
-          (curve) => curve.mnemonic.toLocaleUpperCase() === "GR",
-        ) ?? importedDataset.curves[0];
-      if (!initialCurve) {
-        throw new Error("The selected LAS file does not contain usable curves.");
+      const previousDocumentId = document?.id;
+      setDocument(openedDocument);
+      selectInitialCurve(openedDocument);
+      if (previousDocumentId && previousDocumentId !== openedDocument.id) {
+        await operations.closeDocument(previousDocumentId);
       }
-      setDataset(importedDataset);
-      setSelectedCurveId(initialCurve.id);
       void message.success(
-        `Imported ${importedDataset.sourceFile}: ${importedDataset.curves.length} curves.`,
+        `Opened ${openedDocument.sourceFile}: ${openedDocument.datasets.length} datasets.`,
       );
     } catch (error) {
       void message.error(
-        error instanceof Error ? error.message : "LAS import failed.",
+        error instanceof Error ? error.message : "Could not open the well log.",
+      );
+    }
+  }
+
+  async function handleSaveAs(): Promise<void> {
+    if (!document) {
+      return;
+    }
+    try {
+      const savedDocument = await operations.selectAndSaveDocument(document);
+      if (!savedDocument) {
+        return;
+      }
+      setDocument(savedDocument);
+      void message.success("CX Log package saved.");
+    } catch (error) {
+      void message.error(
+        error instanceof Error ? error.message : "Could not save the CX Log package.",
+      );
+    }
+  }
+
+  async function handleClose(): Promise<void> {
+    if (!document) {
+      return;
+    }
+    try {
+      await operations.closeDocument(document.id);
+      setDocument(null);
+      setSelectedDatasetId("");
+      setSelectedCurveId("");
+    } catch (error) {
+      void message.error(
+        error instanceof Error ? error.message : "Could not close the document.",
       );
     }
   }
@@ -68,33 +120,35 @@ export function App() {
               <span />
             </div>
             <div>
-              <Typography.Text className="brand-kicker">
-                CX subsurface
-              </Typography.Text>
-              <Typography.Title level={1}>
-                CX Well Log Processor
-              </Typography.Title>
+              <Typography.Text className="brand-kicker">CX subsurface</Typography.Text>
+              <Typography.Title level={1}>CX Well Log Processor</Typography.Title>
             </div>
           </div>
 
-          <div className="project-context" aria-label="Current project">
-            <span>Current project</span>
-            <strong>{dataset.projectName}</strong>
-            <small>{dataset.sourceFile}</small>
+          <div className="project-context" aria-label="Current document">
+            <span>Current document</span>
+            <strong>{document?.fieldName ?? "No document open"}</strong>
+            <small>{document?.sourceFile ?? "LAS · DLIS · WITSML · CX Log"}</small>
           </div>
 
           <div className="header-actions">
             <div
-              className={
-                engineStatus.available
-                  ? "engine-status is-ready"
-                  : "engine-status"
-              }
+              className={engineStatus.available ? "engine-status is-ready" : "engine-status"}
               role="status"
             >
               <span aria-hidden="true" />
               {engineStatus.label}
             </div>
+            {operations.busy ? (
+              <Tooltip title={operations.statusMessage}>
+                <Progress
+                  className="operation-progress"
+                  percent={operations.progress}
+                  showInfo={false}
+                  size="small"
+                />
+              </Tooltip>
+            ) : null}
             <Tooltip title="Workspace settings">
               <Button
                 aria-label="Workspace settings"
@@ -103,16 +157,35 @@ export function App() {
                 type="text"
               />
             </Tooltip>
+            {document ? (
+              <>
+                <Button
+                  disabled={operations.busy}
+                  icon={<SaveOutlined />}
+                  onClick={() => void handleSaveAs()}
+                >
+                  Save As
+                </Button>
+                <Tooltip title="Close document">
+                  <Button
+                    aria-label="Close document"
+                    disabled={operations.busy}
+                    icon={<CloseOutlined />}
+                    onClick={() => void handleClose()}
+                    shape="circle"
+                    type="text"
+                  />
+                </Tooltip>
+              </>
+            ) : null}
             <Button
               className="primary-action"
-              loading={importing}
-              onClick={() => void handleImport()}
+              icon={<FolderOpenOutlined />}
+              loading={operations.busy}
+              onClick={() => void handleOpen()}
               type="primary"
             >
-              <span>Import data</span>
-              <span className="primary-action-icon" aria-hidden="true">
-                <ImportOutlined />
-              </span>
+              Open Well Log
             </Button>
           </div>
         </header>
@@ -120,36 +193,77 @@ export function App() {
 
       <div className="workbench-shell">
         <section className="workbench-core" aria-label="Well log workstation">
-          <Splitter className="workspace-splitter" lazy>
-            <Splitter.Panel
-              className="workspace-panel project-panel"
-              defaultSize={246}
-              max={340}
-              min={190}
-            >
-              <ProjectExplorer
-                dataset={dataset}
-                onCurveSelect={setSelectedCurveId}
-                selectedCurveId={selectedCurveId}
-              />
-            </Splitter.Panel>
-            <Splitter.Panel className="workspace-panel log-panel" min={420}>
-              <LogWorkspace
-                dataset={dataset}
-                key={dataset.id}
-                onCurveSelect={setSelectedCurveId}
-                selectedCurveId={selectedCurveId}
-              />
-            </Splitter.Panel>
-            <Splitter.Panel
-              className="workspace-panel inspector-panel"
-              defaultSize={286}
-              max={380}
-              min={220}
-            >
-              <CurveInspector curve={selectedCurve} dataset={dataset} />
-            </Splitter.Panel>
-          </Splitter>
+          {document ? (
+            <Splitter className="workspace-splitter" lazy>
+              <Splitter.Panel
+                className="workspace-panel project-panel"
+                defaultSize={246}
+                max={340}
+                min={190}
+              >
+                <ProjectExplorer
+                  document={document}
+                  onCurveSelect={(datasetId, curveId) => {
+                    setSelectedDatasetId(datasetId);
+                    setSelectedCurveId(curveId);
+                  }}
+                  selectedCurveId={selectedCurveId}
+                  selectedDatasetId={selectedDatasetId}
+                />
+              </Splitter.Panel>
+              <Splitter.Panel className="workspace-panel log-panel" min={420}>
+                {activeDataset && selectedCurve ? (
+                  <LogWorkspace
+                    dataset={activeDataset}
+                    document={document}
+                    key={activeDataset.id}
+                    onCurveSelect={setSelectedCurveId}
+                    selectedCurveId={selectedCurveId}
+                  />
+                ) : (
+                  <Empty
+                    className="panel-empty"
+                    description="This document has no scalar preview. Array data is preserved in CX Log."
+                  />
+                )}
+              </Splitter.Panel>
+              <Splitter.Panel
+                className="workspace-panel inspector-panel"
+                defaultSize={286}
+                max={380}
+                min={220}
+              >
+                {activeDataset && selectedCurve ? (
+                  <CurveInspector
+                    curve={selectedCurve}
+                    dataset={activeDataset}
+                    document={document}
+                  />
+                ) : (
+                  <Empty className="panel-empty" description="No scalar curve selected" />
+                )}
+              </Splitter.Panel>
+            </Splitter>
+          ) : (
+            <div className="empty-workspace">
+              <Empty description="Open a LAS, DLIS, WITSML, or CX Log file">
+                <Button
+                  icon={<FolderOpenOutlined />}
+                  loading={operations.busy}
+                  onClick={() => void handleOpen()}
+                  type="primary"
+                >
+                  Open Well Log
+                </Button>
+              </Empty>
+              {operations.busy ? (
+                <div className="empty-progress" role="status">
+                  <Progress percent={operations.progress} size="small" />
+                  <span>{operations.statusMessage}</span>
+                </div>
+              ) : null}
+            </div>
+          )}
         </section>
       </div>
 
@@ -157,15 +271,14 @@ export function App() {
         <div>
           <span
             aria-hidden="true"
-            className={
-              engineStatus.available ? "status-light is-ready" : "status-light"
-            }
+            className={engineStatus.available ? "status-light is-ready" : "status-light"}
           />
           Local-only workspace
         </div>
         <div>
-          {dataset.sourceFormat} · {dataset.wellName} ·{" "}
-          {dataset.rowCount.toLocaleString()} rows
+          {document
+            ? `${document.sourceFormat} · ${document.datasets.length} datasets · ${document.saved ? "saved" : "unsaved"}`
+            : "No document open"}
         </div>
         <div>
           {platform} · Electron {window.welllogDesktop?.versions.electron ?? "dev"}
