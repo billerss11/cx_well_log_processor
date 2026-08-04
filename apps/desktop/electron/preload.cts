@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld("welllogDesktop", {
       "dialog:save-cxlog",
       defaultName,
     ) as Promise<string | null>,
+  selectCsvDestination: (defaultName: string) =>
+    ipcRenderer.invoke(
+      "dialog:save-csv",
+      defaultName,
+    ) as Promise<string | null>,
   versions: {
     electron: process.versions.electron,
   },

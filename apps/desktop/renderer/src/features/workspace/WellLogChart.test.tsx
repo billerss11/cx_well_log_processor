@@ -34,7 +34,7 @@ vi.mock("@welllog/log-renderer", () => ({
 }));
 
 import { WellLogChart } from "./WellLogChart";
-import type { CurveDefinition } from "./workspaceTypes";
+import type { CurveDefinition, WorkspaceDataset } from "./workspaceTypes";
 
 const curve: CurveDefinition = {
   id: "gr",
@@ -55,6 +55,33 @@ const curve: CurveDefinition = {
   ],
 };
 
+const dataset: WorkspaceDataset = {
+  id: "dataset-1",
+  name: "LAS 2.0",
+  kind: "log",
+  wellName: "Test Well",
+  wellboreName: "Test Wellbore",
+  rowCount: 2,
+  indexMnemonic: "DEPT",
+  indexUnit: "m",
+  indexKind: "measured_depth",
+  indexMinimum: 100,
+  indexMaximum: 200,
+  scalarCurveCount: 1,
+  timeIndexReference: "none",
+  viewSettings: {
+    timeDisplayMode: "elapsed",
+    timeZone: "utc",
+    manualAnchorIndex: null,
+    manualAnchorTimestamp: null,
+  },
+  curves: [curve],
+};
+
+const samplesByCurve = new Map([
+  ["gr", [{ curveId: "gr", index: 100, value: 40 }, { curveId: "gr", index: 200, value: 80 }]],
+]);
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -65,10 +92,12 @@ test("updates the renderer and preserves keyboard cursor movement", () => {
   const { unmount } = render(
     <WellLogChart
       curves={[curve]}
+      dataset={dataset}
       cursorIndex={150}
       fullRange={{ minimum: 100, maximum: 200 }}
       indexMnemonic="DEPT"
       indexUnit="m"
+      samplesByCurve={samplesByCurve}
       onCursorChange={onCursorChange}
       onCurveSelect={vi.fn()}
       onViewportChange={vi.fn()}
@@ -102,10 +131,12 @@ test("forwards renderer interactions to the latest callbacks", () => {
   const { rerender } = render(
     <WellLogChart
       curves={[curve]}
+      dataset={dataset}
       cursorIndex={150}
       fullRange={{ minimum: 100, maximum: 200 }}
       indexMnemonic="DEPT"
       indexUnit="m"
+      samplesByCurve={samplesByCurve}
       onCursorChange={firstCursorChange}
       onCurveSelect={vi.fn()}
       onViewportChange={firstViewportChange}
@@ -116,10 +147,12 @@ test("forwards renderer interactions to the latest callbacks", () => {
   rerender(
     <WellLogChart
       curves={[curve]}
+      dataset={dataset}
       cursorIndex={150}
       fullRange={{ minimum: 100, maximum: 200 }}
       indexMnemonic="DEPT"
       indexUnit="m"
+      samplesByCurve={samplesByCurve}
       onCursorChange={latestCursorChange}
       onCurveSelect={latestCurveSelect}
       onViewportChange={latestViewportChange}

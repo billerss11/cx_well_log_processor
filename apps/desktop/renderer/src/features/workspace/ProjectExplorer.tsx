@@ -1,12 +1,14 @@
 import SearchOutlined from "@ant-design/icons/SearchOutlined";
-import { Input, Tree, Typography, type TreeDataNode } from "antd";
+import { Checkbox, Input, Tree, Typography, type TreeDataNode } from "antd";
 import { useMemo, useState } from "react";
 
-import type { WorkspaceDocument } from "./workspaceTypes";
+import { isDisplayableCurve, type WorkspaceDocument } from "./workspaceTypes";
 
 function createDocumentTreeData(
   document: WorkspaceDocument,
   filterTerm: string,
+  visibleCurveIds: readonly string[],
+  onCurveVisibilityChange: (curveId: string, visible: boolean) => void,
 ): TreeDataNode[] {
   const normalizedFilter = filterTerm.trim().toLocaleLowerCase();
   return [
@@ -26,12 +28,21 @@ function createDocumentTreeData(
           )
           .map((curve) => ({
             disabled:
-              curve.previewSamples.length === 0 ||
+              !isDisplayableCurve(curve) ||
               dataset.indexMinimum === null ||
               dataset.indexMaximum === null,
             key: `${dataset.id}:${curve.id}`,
             title: (
               <span className="curve-tree-label">
+                <Checkbox
+                  aria-label={`${visibleCurveIds.includes(curve.id) ? "Hide" : "Show"} ${curve.mnemonic}`}
+                  checked={visibleCurveIds.includes(curve.id)}
+                  disabled={!isDisplayableCurve(curve)}
+                  onChange={(event) =>
+                    onCurveVisibilityChange(curve.id, event.target.checked)
+                  }
+                  onClick={(event) => event.stopPropagation()}
+                />
                 <span
                   aria-hidden="true"
                   className="curve-swatch"
@@ -53,19 +64,29 @@ interface ProjectExplorerProps {
   readonly document: WorkspaceDocument;
   readonly selectedDatasetId: string;
   readonly selectedCurveId: string;
+  readonly visibleCurveIds: readonly string[];
   readonly onCurveSelect: (datasetId: string, curveId: string) => void;
+  readonly onCurveVisibilityChange: (curveId: string, visible: boolean) => void;
 }
 
 export function ProjectExplorer({
   document,
   selectedDatasetId,
   selectedCurveId,
+  visibleCurveIds,
   onCurveSelect,
+  onCurveVisibilityChange,
 }: ProjectExplorerProps) {
   const [filterTerm, setFilterTerm] = useState("");
   const treeData = useMemo(
-    () => createDocumentTreeData(document, filterTerm),
-    [document, filterTerm],
+    () =>
+      createDocumentTreeData(
+        document,
+        filterTerm,
+        visibleCurveIds,
+        onCurveVisibilityChange,
+      ),
+    [document, filterTerm, onCurveVisibilityChange, visibleCurveIds],
   );
 
   return (
@@ -120,10 +141,17 @@ export function ProjectExplorer({
         <div>
           <strong>{document.sourceFile}</strong>
           <span>
-            {document.datasets.length.toLocaleString()} datasets · {document.saved ? "saved" : "session"}
+            {document.scalarCurveCount.toLocaleString()} scalar curves · {formatFileSize(document.fileSizeBytes)} · {document.modified ? "modified" : document.saved ? "saved" : "session"}
           </span>
         </div>
       </div>
     </aside>
   );
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

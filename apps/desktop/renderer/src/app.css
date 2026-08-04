@@ -426,7 +426,7 @@ button:focus-visible,
 
 .curve-tree-label {
   display: grid;
-  grid-template-columns: 9px minmax(0, 1fr) auto;
+  grid-template-columns: 18px 9px minmax(0, 1fr) auto;
   gap: 7px;
   align-items: center;
   width: 100%;
@@ -498,7 +498,7 @@ button:focus-visible,
 .log-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 10px;
   height: 100%;
   min-height: 0;
@@ -575,6 +575,43 @@ button:focus-visible,
   justify-content: space-between;
 }
 
+.curve-selection {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-width: 0;
+}
+
+.curve-selection-heading {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+  color: #7b8585;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.curve-selection-count {
+  margin-right: 2px;
+  color: #9aa3a2;
+  font-family:
+    "JetBrains Mono Variable", "Cascadia Mono", ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.curve-selection-heading .ant-btn {
+  height: 22px;
+  padding-inline: 5px;
+  font-size: 9px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .curve-chip-list {
   display: flex;
   gap: 4px;
@@ -607,7 +644,7 @@ button:focus-visible,
   transform: translateY(-1px);
 }
 
-.curve-chip.is-selected {
+.curve-chip.is-visible {
   color: #263333;
   background: #fff;
   box-shadow:
@@ -615,10 +652,19 @@ button:focus-visible,
     0 7px 18px rgb(42 61 57 / 7%);
 }
 
+.curve-chip.is-active {
+  box-shadow: inset 0 0 0 1px rgb(31 111 104 / 42%);
+}
+
 .curve-chip-line {
   width: 17px;
   height: 2px;
   border-radius: 999px;
+  opacity: 0.28;
+}
+
+.curve-chip.is-visible .curve-chip-line {
+  opacity: 1;
 }
 
 .cursor-readout {
@@ -641,6 +687,11 @@ button:focus-visible,
   font-size: 11px;
 }
 
+.cursor-readout small {
+  color: #87918f;
+  font-size: 8px;
+}
+
 .instrument-shell {
   min-width: 0;
   min-height: 0;
@@ -655,14 +706,26 @@ button:focus-visible,
 }
 
 .instrument-core {
+  position: relative;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   border-radius: 14px;
   background: #fbfcfa;
   box-shadow:
     inset 0 1px 1px rgb(255 255 255 / 98%),
     inset 0 0 0 1px rgb(22 54 50 / 7%);
+}
+
+.empty-curve-selection {
+  display: grid;
+  height: 100%;
+  min-height: 280px;
+  place-items: center;
+  padding: 24px;
+  color: #7b8585;
+  font-size: 11px;
+  text-align: center;
 }
 
 .well-log-chart {
@@ -877,6 +940,345 @@ button:focus-visible,
 
 .status-light.is-ready {
   background: #3f7d5a;
+}
+
+.workspace-warning:empty {
+  display: none;
+}
+
+.workspace-warning .ant-alert {
+  padding-block: 5px;
+  border-radius: 9px;
+  font-size: 9px;
+}
+
+.chart-loading,
+.chart-error {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: #566361;
+  background: rgb(250 252 249 / 92%);
+  box-shadow: 0 5px 18px rgb(35 55 51 / 12%);
+  font-size: 9px;
+}
+
+.chart-error {
+  color: #8d3b35;
+}
+
+.inspector-tabs {
+  flex: 1;
+  min-height: 0;
+}
+
+.inspector-tabs > .ant-tabs-content-holder,
+.inspector-tabs .ant-tabs-content,
+.inspector-tabs .ant-tabs-tabpane {
+  height: 100%;
+  min-height: 0;
+}
+
+.inspector-tab-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.dataset-inspector .ant-descriptions-item-label,
+.dataset-inspector .ant-descriptions-item-content {
+  padding-bottom: 8px;
+  font-size: 9px;
+}
+
+.dataset-actions {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.time-settings {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e6e1;
+}
+
+.time-settings label {
+  display: grid;
+  gap: 4px;
+  color: #7a8584;
+  font-size: 9px;
+}
+
+.time-settings .ant-select,
+.time-settings .ant-input-number,
+.time-settings input[type="datetime-local"] {
+  width: 100%;
+}
+
+.time-settings input[type="datetime-local"] {
+  height: 32px;
+  padding: 4px 10px;
+  border: 1px solid #d7ded9;
+  border-radius: 7px;
+  color: #3c4a49;
+  background: #fff;
+}
+
+.time-settings small {
+  color: #858f8d;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.metadata-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metadata-object-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.metadata-object-button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 9px;
+  border: 0;
+  border-radius: 8px;
+  color: #334441;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.metadata-object-button.is-selected,
+.metadata-object-button:hover {
+  background: #edf2ed;
+}
+
+.metadata-object-button strong {
+  font-size: 10px;
+}
+
+.metadata-object-button span {
+  color: #7b8885;
+  font-size: 9px;
+}
+
+.metadata-detail {
+  min-width: 0;
+}
+
+.metadata-detail .ant-collapse-header {
+  align-items: center;
+}
+
+.metadata-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.metadata-section-label small {
+  color: #899291;
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+  font-size: 8px;
+}
+
+.metadata-las-list,
+.metadata-array-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metadata-las-entry {
+  display: grid;
+  grid-template-columns: minmax(52px, 70px) minmax(0, 1fr);
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid rgba(50, 78, 73, 0.08);
+  border-radius: 8px;
+  background: #f7f9f6;
+}
+
+.metadata-las-identity,
+.metadata-las-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.metadata-las-identity strong,
+.metadata-las-value,
+.metadata-primitive {
+  overflow-wrap: anywhere;
+  color: #334441;
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+  font-size: 9px;
+}
+
+.metadata-las-identity span,
+.metadata-las-content small,
+.metadata-array-item > small {
+  color: #7b8885;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.metadata-las-content small {
+  overflow-wrap: anywhere;
+}
+
+.metadata-las-value {
+  font-weight: 600;
+}
+
+.metadata-property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.metadata-property-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(50, 78, 73, 0.09);
+  border-radius: 8px;
+  background: rgba(50, 78, 73, 0.09);
+}
+
+.metadata-property-list > div {
+  display: grid;
+  grid-template-columns: minmax(76px, 38%) minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 9px;
+  background: #f8faf7;
+}
+
+.metadata-property-list dt {
+  color: #778481;
+  font-size: 8px;
+}
+
+.metadata-property-list dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.metadata-array-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.metadata-text {
+  margin: 0;
+  padding: 9px;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  color: #3e4d4b;
+  background: #eef2ee;
+  font-size: 9px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.metadata-empty {
+  display: block;
+  padding: 8px 2px;
+  color: #8b9593;
+  font-size: 9px;
+}
+
+.metadata-limit {
+  display: block;
+  padding: 6px 2px;
+  color: #7b8885;
+  font-size: 8px;
+}
+
+.drawer-resize-handle {
+  position: absolute;
+  z-index: 3;
+  top: -5px;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.preview-table-scroll {
+  height: calc(100% - 42px);
+  overflow: auto;
+}
+
+.preview-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+  font-size: 9px;
+}
+
+.preview-table th,
+.preview-table td {
+  min-width: 110px;
+  padding: 5px 8px;
+  border-bottom: 1px solid #e4e8e4;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.preview-table th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  color: #52605e;
+  background: #f4f7f3;
+}
+
+.preview-pagination {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 8px;
+  color: #7a8584;
+  font-size: 9px;
+}
+
+.index-candidate {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 10px;
+}
+
+.index-candidate small {
+  grid-column: 2;
+  display: block;
+  color: #7c8785;
 }
 
 @keyframes surface-enter {

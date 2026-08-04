@@ -10,6 +10,27 @@ const fallbackWidth = 934;
 const depthColumnWidth = 74;
 const plotTop = 68;
 const plotBottom = 24;
+const displayLocale = "en-GB";
+const timeTickIntervals = [
+  1,
+  5,
+  10,
+  30,
+  60,
+  5 * 60,
+  15 * 60,
+  30 * 60,
+  60 * 60,
+  3 * 60 * 60,
+  6 * 60 * 60,
+  12 * 60 * 60,
+  24 * 60 * 60,
+  2 * 24 * 60 * 60,
+  7 * 24 * 60 * 60,
+  30 * 24 * 60 * 60,
+  90 * 24 * 60 * 60,
+  365 * 24 * 60 * 60,
+] as const;
 
 function formatValue(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
@@ -19,23 +40,100 @@ function formatValue(value: number | null): string {
   if ((absoluteValue > 0 && absoluteValue < 0.01) || absoluteValue >= 10_000) {
     return value.toExponential(2);
   }
-  return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+  return value.toLocaleString(displayLocale, { maximumFractionDigits: 3 });
 }
 
-function getTickIntervals(depthSpan: number): {
+function formatIndex(value: number, model: ScalarLogRenderModel): string {
+  if (model.indexKind !== "time") {
+    return formatValue(value);
+  }
+  if (model.timeDisplayMode === "elapsed") {
+    const origin = model.indexRange.minimum;
+    return formatElapsedSeconds(value - origin);
+  }
+
+  let timestamp: number | null = null;
+  if (
+    model.manualAnchorIndex !== null &&
+    model.manualAnchorTimestamp !== null
+  ) {
+    timestamp = model.manualAnchorTimestamp + (value - model.manualAnchorIndex);
+  } else if (model.timeIndexReference === "absolute_utc") {
+    timestamp = value;
+  }
+  if (timestamp === null || !Number.isFinite(timestamp)) {
+    return formatElapsedSeconds(value - model.indexRange.minimum);
+  }
+  return new Intl.DateTimeFormat(displayLocale, {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "short",
+    second: "2-digit",
+    timeZone: model.timeZone === "utc" ? "UTC" : undefined,
+  }).format(new Date(timestamp * 1000));
+}
+
+function formatElapsedSeconds(value: number): string {
+  const sign = value < 0 ? "−" : "";
+  const totalSeconds = Math.abs(Math.round(value));
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = [hours, minutes, seconds]
+    .map((part) => part.toString().padStart(2, "0"))
+    .join(":");
+  return `${sign}${days > 0 ? `${days}d ` : ""}${clock}`;
+}
+
+function getTickIntervals(
+  indexSpan: number,
+  indexKind: ScalarLogRenderModel["indexKind"],
+): {
   readonly major: number;
   readonly minorDivisions: number;
 } {
-  if (depthSpan <= 30) {
+  if (indexKind === "time") {
+    const targetInterval = Math.abs(indexSpan) / 8;
+    const major =
+      timeTickIntervals.find((interval) => interval >= targetInterval) ??
+      365 * 24 * 60 * 60;
+    return { major, minorDivisions: 4 };
+  }
+  if (indexSpan <= 30) {
     return { major: 5, minorDivisions: 5 };
   }
-  if (depthSpan <= 100) {
+  if (indexSpan <= 100) {
     return { major: 10, minorDivisions: 5 };
   }
-  if (depthSpan <= 300) {
+  if (indexSpan <= 300) {
     return { major: 25, minorDivisions: 5 };
   }
   return { major: 100, minorDivisions: 5 };
+}
+
+function formatAxisPointerLabel(
+  params: unknown,
+  model: ScalarLogRenderModel,
+): string {
+  if (!params || typeof params !== "object" || !("value" in params)) {
+    return "";
+  }
+  const value = (params as { readonly value?: unknown }).value;
+  return typeof value === "number" ? formatIndex(value, model) : "";
+}
+
+function formatAxisTickLabel(
+  value: number,
+  model: ScalarLogRenderModel,
+): string {
+  const formatted = formatIndex(value, model);
+  if (model.indexKind !== "time") {
+    return formatted;
+  }
+  return formatted.replace(", ", "\n").replace("d ", "d\n");
 }
 
 function getFiniteValues(curve: ScalarLogCurve): number[] {
@@ -120,7 +218,7 @@ function formatTooltip(params: unknown, model: ScalarLogRenderModel): string {
   const index = tooltipItem.value[1];
   const curve = model.curves.find((item) => item.id === tooltipItem.seriesId);
   const formattedIndex =
-    typeof index === "number" ? formatValue(index) : String(index ?? "—");
+    typeof index === "number" ? formatIndex(index, model) : String(index ?? "—");
   const formattedValue =
     typeof value === "number" ? formatValue(value) : String(value ?? "—");
 
@@ -134,14 +232,17 @@ export function buildScalarLogOption(
   const width = containerWidth > depthColumnWidth ? containerWidth : fallbackWidth;
   const trackWidth = (width - depthColumnWidth) / model.curves.length;
   const cursorIndex = clampToViewport(model.cursorIndex, model.viewport);
-  const intervals = getTickIntervals(model.viewport.maximum - model.viewport.minimum);
+  const intervals = getTickIntervals(
+    model.viewport.maximum - model.viewport.minimum,
+    model.indexKind,
+  );
   const fullIndexSpan = model.indexRange.maximum - model.indexRange.minimum;
 
   return {
     animation: false,
     aria: {
       enabled: true,
-      description: `${model.curves.map((curve) => curve.mnemonic).join(", ")} curves from ${formatValue(model.viewport.minimum)} to ${formatValue(model.viewport.maximum)} ${model.indexUnit}`,
+      description: `${model.curves.map((curve) => curve.mnemonic).join(", ")} curves from ${formatIndex(model.viewport.minimum, model)} to ${formatIndex(model.viewport.maximum, model)} ${model.indexUnit}`,
     },
     axisPointer: {
       link: [{ yAxisIndex: "all" }],
@@ -235,14 +336,11 @@ export function buildScalarLogOption(
       },
       axisPointer: {
         axis: "y",
-        type: "cross",
+        type: "line",
         snap: false,
         lineStyle: { color: "rgba(38, 60, 58, 0.72)", width: 1 },
-        crossStyle: { color: "rgba(38, 60, 58, 0.38)", width: 1 },
         label: {
-          color: "#eff8f4",
-          backgroundColor: "#46635f",
-          precision: 2,
+          show: false,
         },
       },
       formatter: (params: unknown) => formatTooltip(params, model),
@@ -274,6 +372,18 @@ export function buildScalarLogOption(
       min: model.indexRange.minimum,
       max: model.indexRange.maximum,
       interval: intervals.major,
+      axisPointer: {
+        show: true,
+        label: {
+          show: trackIndex === 0,
+          formatter: (params: unknown) => formatAxisPointerLabel(params, model),
+          color: "#eff8f4",
+          backgroundColor: "#46635f",
+          fontFamily: "JetBrains Mono Variable, Cascadia Mono, monospace",
+          fontSize: 8,
+          padding: [4, 7],
+        },
+      },
       axisLabel: {
         show: trackIndex === 0,
         inside: false,
@@ -281,7 +391,7 @@ export function buildScalarLogOption(
         color: "#727e7c",
         fontFamily: "JetBrains Mono Variable, Cascadia Mono, monospace",
         fontSize: 9,
-        formatter: (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+        formatter: (value: number) => formatAxisTickLabel(value, model),
       },
       axisLine: { show: false },
       axisTick: { show: false },
@@ -314,7 +424,6 @@ export function buildScalarLogOption(
         ]),
         showSymbol: false,
         connectNulls: false,
-        sampling: "minmax",
         animation: false,
         clip: true,
         triggerEvent: "line",
@@ -334,7 +443,7 @@ export function buildScalarLogOption(
           lineStyle: { color: "#263c3a", width: 1 },
           label: {
             show: trackIndex === 0,
-            formatter: formatValue(cursorIndex),
+            formatter: formatIndex(cursorIndex, model),
             position: "insideStartTop",
             color: "#eff8f4",
             backgroundColor: "#243533",

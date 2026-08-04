@@ -28,10 +28,25 @@ export interface WorkspaceDataset {
   readonly rowCount: number;
   readonly indexMnemonic: string;
   readonly indexUnit: string;
-  readonly indexKind: "measured_depth" | "time" | "sample" | "other";
+  readonly indexKind:
+    | "measured_depth"
+    | "true_vertical_depth"
+    | "time"
+    | "sample"
+    | "other";
   readonly indexMinimum: number | null;
   readonly indexMaximum: number | null;
+  readonly scalarCurveCount: number;
+  readonly timeIndexReference: "none" | "elapsed" | "absolute_utc";
+  readonly viewSettings: DatasetViewSettings;
   readonly curves: readonly CurveDefinition[];
+}
+
+export interface DatasetViewSettings {
+  readonly timeDisplayMode: "elapsed" | "clock";
+  readonly timeZone: "utc" | "local";
+  readonly manualAnchorIndex: number | null;
+  readonly manualAnchorTimestamp: number | null;
 }
 
 export interface WorkspaceDocument {
@@ -40,7 +55,10 @@ export interface WorkspaceDocument {
   readonly sourceFormat: "LAS" | "DLIS" | "WITSML";
   readonly sourceVersion: string;
   readonly fieldName: string;
+  readonly fileSizeBytes: number;
+  readonly scalarCurveCount: number;
   readonly saved: boolean;
+  readonly modified: boolean;
   readonly preservedObjectCount: number;
   readonly datasets: readonly WorkspaceDataset[];
   readonly warnings: readonly string[];
@@ -50,9 +68,7 @@ export function findCurve(
   curves: readonly CurveDefinition[],
   curveId: string,
 ): CurveDefinition {
-  const displayableCurves = curves.filter(
-    (curve) => curve.previewSamples.length > 0,
-  );
+  const displayableCurves = curves.filter(isDisplayableCurve);
   const firstCurve = displayableCurves[0];
   if (!firstCurve) {
     throw new Error("This dataset does not contain scalar preview curves.");
@@ -68,7 +84,15 @@ export function findFirstDisplayableDataset(
       dataset.indexMinimum !== null &&
       dataset.indexMaximum !== null &&
       dataset.indexMaximum > dataset.indexMinimum &&
-      dataset.curves.some((curve) => curve.previewSamples.length > 0),
+      dataset.curves.some(isDisplayableCurve),
+  );
+}
+
+export function isDisplayableCurve(curve: CurveDefinition): boolean {
+  return (
+    curve.storageKind === "parquet" &&
+    curve.sampleShape.length === 0 &&
+    (curve.minimum !== null || curve.maximum !== null || curve.previewSamples.length > 0)
   );
 }
 

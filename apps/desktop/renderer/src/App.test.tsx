@@ -1,12 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { App as AntDesignApp } from "antd";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "./App";
 
 const desktopMocks = vi.hoisted(() => ({
+  selectCsvDestination: vi.fn<() => Promise<string | null>>(),
   selectCxlogDestination: vi.fn<() => Promise<string | null>>(),
   selectWellLogFile: vi.fn<() => Promise<string | null>>(),
 }));
@@ -23,24 +24,22 @@ const testData = vi.hoisted(() => ({
   documentSummary: {
     datasets: [
     {
-      curves: [
-        {
-          description: "Gamma Ray",
-          id: "curve-1-gr",
-          maximum: 145.2,
-          minimum: 12.4,
-          mnemonic: "GR",
-          null_count: 3,
-          preview_samples: [
-            { index: 1750, value: 86.2 },
-            { index: 2143, value: 74.1 },
-          ],
-          sample_count: 3931,
-          sample_shape: [],
-          storage_kind: "parquet",
-          unit: "gAPI",
-        },
-      ],
+      curves: Array.from({ length: 10 }, (_, index) => ({
+        description: index === 0 ? "Gamma Ray" : `Curve ${index + 1}`,
+        id: `curve-${index + 1}`,
+        maximum: 145.2,
+        minimum: 12.4,
+        mnemonic: index === 0 ? "GR" : `C${index + 1}`,
+        null_count: 3,
+        preview_samples: [
+          { index: 1750, value: 86.2 },
+          { index: 2143, value: 74.1 },
+        ],
+        sample_count: 3931,
+        sample_shape: [],
+        storage_kind: "parquet",
+        unit: "gAPI",
+      })),
       id: "dataset-las-1",
       index_kind: "measured_depth",
       index_maximum: 2143,
@@ -50,14 +49,25 @@ const testData = vi.hoisted(() => ({
       kind: "log",
       name: "LAS 2.0",
       row_count: 3931,
+      scalar_curve_count: 10,
+      time_index_reference: "none",
+      view_settings: {
+        manual_anchor_index: null,
+        manual_anchor_timestamp: null,
+        time_display_mode: "elapsed",
+        time_zone: "utc",
+      },
       well_name: "Geographe 2 L1",
       wellbore_name: "Imported wellbore",
     },
   ],
   field_name: "Geographe",
+  file_size_bytes: 2048,
   id: "document-1",
+  modified: false,
   preserved_object_count: 1,
   saved: false,
+  scalar_curve_count: 10,
   source_file: "test.las",
   source_format: "LAS",
   source_version: "2.0",
@@ -78,6 +88,10 @@ vi.mock("@welllog/ts-api-client", () => ({
       status: "ok",
     },
   }),
+  exportDatasetCsv: vi.fn(),
+  getCursorValues: vi.fn(),
+  getMetadataObject: vi.fn(),
+  listMetadataObjects: vi.fn(),
   getJob: vi.fn().mockImplementation(
     (options: { path: { job_id: string } }) =>
       Promise.resolve({
@@ -105,6 +119,7 @@ vi.mock("@welllog/ts-api-client", () => ({
   saveDocumentAs: vi
     .fn()
     .mockResolvedValue({ data: { job_id: "save-job" } }),
+  updateDatasetViewSettings: vi.fn(),
 }));
 
 vi.mock("@welllog/log-renderer", () => ({
@@ -116,10 +131,12 @@ beforeEach(() => {
   desktopMocks.selectCxlogDestination.mockResolvedValue(
     "J:\\sample\\test.cxlog",
   );
+  desktopMocks.selectCsvDestination.mockResolvedValue("J:\\sample\\test.csv");
   Object.defineProperty(window, "welllogDesktop", {
     configurable: true,
     value: {
       platform: "win32",
+      selectCsvDestination: desktopMocks.selectCsvDestination,
       selectCxlogDestination: desktopMocks.selectCxlogDestination,
       selectWellLogFile: desktopMocks.selectWellLogFile,
       versions: { electron: "43.2.0" },
@@ -160,6 +177,17 @@ test("opens a selected well-log file into the workspace", async () => {
   ).toBeInTheDocument();
   expect(screen.getAllByText("test.las").length).toBeGreaterThan(0);
   expect(desktopMocks.selectWellLogFile).toHaveBeenCalledOnce();
+});
+
+test("shows eight curves by default and allows more without a cap", async () => {
+  renderApp();
+  fireEvent.click(screen.getAllByRole("button", { name: /Open Well Log/i })[0]!);
+  const visibleCurves = await screen.findByLabelText("Visible curves");
+  expect(within(visibleCurves).getAllByRole("button")).toHaveLength(8);
+
+  fireEvent.click(screen.getByRole("checkbox", { name: "Show C9" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Show C10" }));
+  expect(within(visibleCurves).getAllByRole("button")).toHaveLength(10);
 });
 
 test("saves the open document as a CX Log package", async () => {

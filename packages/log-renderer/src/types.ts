@@ -27,6 +27,12 @@ export interface ScalarLogRenderModel {
   readonly viewport: ScalarLogViewport;
   readonly cursorIndex: number;
   readonly selectedCurveId: string;
+  readonly indexKind: "depth" | "time" | "other";
+  readonly timeIndexReference: "none" | "elapsed" | "absolute_utc";
+  readonly timeDisplayMode: "elapsed" | "clock";
+  readonly timeZone: "utc" | "local";
+  readonly manualAnchorIndex: number | null;
+  readonly manualAnchorTimestamp: number | null;
 }
 
 export interface ScalarLogRendererEvents {

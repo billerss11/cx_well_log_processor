@@ -31,6 +31,16 @@ ipcMain.handle("dialog:save-cxlog", async (_event, defaultName: string) => {
   return result.canceled ? null : (result.filePath ?? null);
 });
 
+ipcMain.handle("dialog:save-csv", async (_event, defaultName: string) => {
+  const result = await dialog.showSaveDialog({
+    defaultPath: defaultName,
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+    title: "Export well-log data",
+  });
+
+  return result.canceled ? null : (result.filePath ?? null);
+});
+
 function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1280,

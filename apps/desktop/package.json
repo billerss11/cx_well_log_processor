@@ -15,6 +15,7 @@
     "@ant-design/icons": "^6",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@welllog/arrow-data-client": "workspace:^",
     "@welllog/log-renderer": "workspace:*",
     "@welllog/ts-api-client": "workspace:*",
     "antd": "^6",

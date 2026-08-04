@@ -8,6 +8,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
 import type { CurveDefinition } from "./workspaceTypes";
+import type { WorkspaceDataset } from "./workspaceTypes";
 
 interface VisibleIndexRange {
   readonly minimum: number;
@@ -16,6 +17,11 @@ interface VisibleIndexRange {
 
 interface WellLogChartProps {
   readonly curves: readonly CurveDefinition[];
+  readonly dataset: WorkspaceDataset;
+  readonly samplesByCurve: ReadonlyMap<
+    string,
+    readonly { readonly index: number; readonly value: number | null }[]
+  >;
   readonly cursorIndex: number;
   readonly fullRange: VisibleIndexRange;
   readonly indexMnemonic: string;
@@ -33,6 +39,8 @@ function clamp(value: number, minimum: number, maximum: number): number {
 
 export function WellLogChart({
   curves,
+  dataset,
+  samplesByCurve,
   cursorIndex,
   fullRange,
   indexMnemonic,
@@ -66,12 +74,12 @@ export function WellLogChart({
         scale: curve.scale === "Logarithmic" ? "logarithmic" : "linear",
         minimum: curve.minimum,
         maximum: curve.maximum,
-        samples: curve.previewSamples.map((sample) => ({
-          index: sample.depth,
+        samples: (samplesByCurve.get(curve.id) ?? []).map((sample) => ({
+          index: sample.index,
           value: sample.value,
         })),
       })),
-    [curves],
+    [curves, samplesByCurve],
   );
 
   const renderModel = useMemo<ScalarLogRenderModel>(
@@ -83,9 +91,21 @@ export function WellLogChart({
       viewport: visibleRange,
       cursorIndex,
       selectedCurveId,
+      indexKind:
+        dataset.indexKind === "time"
+          ? "time"
+          : dataset.indexKind === "other" || dataset.indexKind === "sample"
+            ? "other"
+            : "depth",
+      timeIndexReference: dataset.timeIndexReference,
+      timeDisplayMode: dataset.viewSettings.timeDisplayMode,
+      timeZone: dataset.viewSettings.timeZone,
+      manualAnchorIndex: dataset.viewSettings.manualAnchorIndex,
+      manualAnchorTimestamp: dataset.viewSettings.manualAnchorTimestamp,
     }),
     [
       cursorIndex,
+      dataset,
       fullRange,
       indexMnemonic,
       indexUnit,
@@ -160,6 +180,7 @@ export function WellLogChart({
       onKeyDown={moveCursorWithKeyboard}
       ref={containerRef}
       role="application"
+      style={{ minWidth: `${Math.max(520, 74 + curves.length * 150)}px` }}
       tabIndex={0}
     />
   );

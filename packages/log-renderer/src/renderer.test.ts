@@ -56,6 +56,12 @@ const model: ScalarLogRenderModel = {
   indexUnit: "m",
   indexRange: { minimum: 0, maximum: 400 },
   cursorIndex: 150,
+  indexKind: "depth",
+  timeIndexReference: "none",
+  timeDisplayMode: "elapsed",
+  timeZone: "utc",
+  manualAnchorIndex: null,
+  manualAnchorTimestamp: null,
   selectedCurveId: "gr",
   viewport: { minimum: 100, maximum: 300 },
   curves: [

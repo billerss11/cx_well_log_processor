@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "apache-arrow": "^21.2.0"
   }
 }

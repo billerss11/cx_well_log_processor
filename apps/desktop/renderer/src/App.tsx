@@ -7,6 +7,7 @@ import {
   Button,
   Empty,
   Progress,
+  Radio,
   Splitter,
   Tooltip,
   Typography,
@@ -19,18 +20,20 @@ import { LogWorkspace } from "./features/workspace/LogWorkspace";
 import { ProjectExplorer } from "./features/workspace/ProjectExplorer";
 import {
   findFirstDisplayableDataset,
+  isDisplayableCurve,
   type WorkspaceDocument,
 } from "./features/workspace/workspaceTypes";
 import { useDocument } from "./hooks/useDocument";
 import { useEngineStatus } from "./hooks/useEngineStatus";
 
 export function App() {
-  const { message } = AntDesignApp.useApp();
+  const { message, modal } = AntDesignApp.useApp();
   const engineStatus = useEngineStatus();
   const operations = useDocument();
   const [document, setDocument] = useState<WorkspaceDocument | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState("");
   const [selectedCurveId, setSelectedCurveId] = useState("");
+  const [visibleCurveIds, setVisibleCurveIds] = useState<readonly string[]>([]);
   const activeDataset = document?.datasets.find(
     (dataset) => dataset.id === selectedDatasetId,
   );
@@ -44,16 +47,46 @@ export function App() {
     const curve =
       dataset?.curves.find(
         (item) =>
-          item.previewSamples.length > 0 &&
+          isDisplayableCurve(item) &&
           item.mnemonic.toLocaleUpperCase() === "GR",
-      ) ?? dataset?.curves.find((item) => item.previewSamples.length > 0);
+      ) ?? dataset?.curves.find(isDisplayableCurve);
     setSelectedDatasetId(dataset?.id ?? "");
     setSelectedCurveId(curve?.id ?? "");
+    setVisibleCurveIds(
+      dataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
+    );
   }
 
   async function handleOpen(): Promise<void> {
     try {
-      const openedDocument = await operations.selectAndOpenDocument();
+      const openedDocument = await operations.selectAndOpenDocument(
+        (candidates) =>
+          new Promise((resolve) => {
+            let selectedId = candidates[0]?.id ?? "";
+            modal.confirm({
+              cancelText: "Cancel import",
+              content: (
+                <Radio.Group
+                  defaultValue={selectedId}
+                  onChange={(event) => {
+                    selectedId = String(event.target.value);
+                  }}
+                >
+                  {candidates.map((candidate) => (
+                    <Radio className="index-candidate" key={candidate.id} value={candidate.id}>
+                      <strong>{candidate.mnemonic}</strong> {candidate.unit} · {candidate.kind}
+                      <small>{candidate.reason}</small>
+                    </Radio>
+                  ))}
+                </Radio.Group>
+              ),
+              onCancel: () => resolve(null),
+              onOk: () => resolve(selectedId || null),
+              okText: "Use selected index",
+              title: "Choose the canonical index",
+            });
+          }),
+      );
       if (!openedDocument) {
         return;
       }
@@ -100,6 +133,7 @@ export function App() {
       setDocument(null);
       setSelectedDatasetId("");
       setSelectedCurveId("");
+      setVisibleCurveIds([]);
     } catch (error) {
       void message.error(
         error instanceof Error ? error.message : "Could not close the document.",
@@ -204,11 +238,25 @@ export function App() {
                 <ProjectExplorer
                   document={document}
                   onCurveSelect={(datasetId, curveId) => {
+                    if (datasetId !== selectedDatasetId) {
+                      const nextDataset = document.datasets.find((item) => item.id === datasetId);
+                      setVisibleCurveIds(
+                        nextDataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
+                      );
+                    }
                     setSelectedDatasetId(datasetId);
                     setSelectedCurveId(curveId);
                   }}
+                  onCurveVisibilityChange={(curveId, visible) => {
+                    setVisibleCurveIds((current) =>
+                      visible
+                        ? current.includes(curveId) ? current : [...current, curveId]
+                        : current.filter((id) => id !== curveId),
+                    );
+                  }}
                   selectedCurveId={selectedCurveId}
                   selectedDatasetId={selectedDatasetId}
+                  visibleCurveIds={visibleCurveIds}
                 />
               </Splitter.Panel>
               <Splitter.Panel className="workspace-panel log-panel" min={420}>
@@ -218,7 +266,9 @@ export function App() {
                     document={document}
                     key={activeDataset.id}
                     onCurveSelect={setSelectedCurveId}
+                    onVisibleCurveIdsChange={setVisibleCurveIds}
                     selectedCurveId={selectedCurveId}
+                    visibleCurveIds={visibleCurveIds}
                   />
                 ) : (
                   <Empty
@@ -238,6 +288,32 @@ export function App() {
                     curve={selectedCurve}
                     dataset={activeDataset}
                     document={document}
+                    busy={operations.busy}
+                    onExport={async (allScalarCurves) => {
+                      const exportedPath = await operations.selectAndExportCsv(
+                        document,
+                        activeDataset.id,
+                        visibleCurveIds,
+                        allScalarCurves,
+                      );
+                      if (exportedPath) {
+                        void message.success(`CSV exported to ${exportedPath}`);
+                      }
+                    }}
+                    onViewSettingsSave={async (settings) => {
+                      try {
+                        const updated = await operations.updateDatasetSettings(
+                          document.id,
+                          activeDataset.id,
+                          settings,
+                        );
+                        setDocument(updated);
+                        void message.success("View settings updated. Use Save As to persist them.");
+                      } catch (error) {
+                        void message.error(error instanceof Error ? error.message : "Could not update view settings.");
+                      }
+                    }}
+                    visibleCurveIds={visibleCurveIds}
                   />
                 ) : (
                   <Empty className="panel-empty" description="No scalar curve selected" />
@@ -277,7 +353,7 @@ export function App() {
         </div>
         <div>
           {document
-            ? `${document.sourceFormat} · ${document.datasets.length} datasets · ${document.saved ? "saved" : "unsaved"}`
+            ? `${document.sourceFormat} · ${document.datasets.length} datasets · ${document.modified ? "modified" : document.saved ? "saved" : "unsaved"}`
             : "No document open"}
         </div>
         <div>

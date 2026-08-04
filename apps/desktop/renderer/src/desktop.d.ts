@@ -4,6 +4,9 @@ interface WelllogDesktopApi {
   readonly selectCxlogDestination: (
     defaultName: string,
   ) => Promise<string | null>;
+  readonly selectCsvDestination: (
+    defaultName: string,
+  ) => Promise<string | null>;
   readonly versions: {
     readonly electron: string;
   };
