@@ -11,6 +11,7 @@ import pyarrow as pa  # type: ignore[import-untyped]
 
 from welllog_engine.contracts.documents import (
     CurvePreviewSample,
+    DatasetViewSettings,
     DocumentCurveSummary,
     DocumentDatasetSummary,
     DocumentSummary,
@@ -18,6 +19,9 @@ from welllog_engine.contracts.documents import (
     PackageVerificationResponse,
     SourceFormat,
     StorageKind,
+    TimeDisplayMode,
+    TimeIndexReference,
+    TimeZoneMode,
 )
 from welllog_engine.domain.documents import (
     ConversionResult,
@@ -114,6 +118,76 @@ def write_package(staging_path: Path, destination_path: Path) -> Path:
     return destination
 
 
+def refresh_staging_manifest(
+    staging_path: Path,
+    manifest: CxlogManifest,
+) -> CxlogManifest:
+    updated = _manifest_with_catalog(manifest, staging_path / CATALOG_PATH)
+    (staging_path / MANIFEST_PATH).write_text(
+        updated.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return updated
+
+
+def write_updated_package(
+    source_path: Path,
+    working_path: Path,
+    manifest: CxlogManifest,
+    destination_path: Path,
+) -> tuple[Path, CxlogManifest]:
+    source = source_path.expanduser().resolve()
+    destination = _package_destination(destination_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    updated_manifest = _manifest_with_catalog(manifest, working_path / CATALOG_PATH)
+    temporary_path = destination.with_name(f".{destination.name}.{uuid4().hex}.tmp")
+    try:
+        with (
+            zipfile.ZipFile(source, mode="r") as input_archive,
+            zipfile.ZipFile(temporary_path, mode="w", allowZip64=True) as output_archive,
+        ):
+            members = _validated_members(input_archive)
+            for asset in updated_manifest.assets:
+                compression = (
+                    zipfile.ZIP_DEFLATED
+                    if Path(asset.path).suffix.casefold() in {".json", ".xml"}
+                    else zipfile.ZIP_STORED
+                )
+                if asset.path == CATALOG_PATH:
+                    output_archive.write(
+                        working_path / CATALOG_PATH,
+                        CATALOG_PATH,
+                        compress_type=compression,
+                    )
+                    continue
+                member = members.get(asset.path)
+                if member is None:
+                    raise CxlogError(f"The package is missing asset {asset.path}.")
+                destination_info = zipfile.ZipInfo(asset.path)
+                destination_info.compress_type = compression
+                with input_archive.open(member, mode="r") as source_stream:
+                    with output_archive.open(
+                        destination_info,
+                        mode="w",
+                        force_zip64=True,
+                    ) as destination_stream:
+                        shutil.copyfileobj(
+                            source_stream,
+                            destination_stream,
+                            length=1024 * 1024,
+                        )
+            output_archive.writestr(
+                MANIFEST_PATH,
+                updated_manifest.model_dump_json(indent=2) + "\n",
+                compress_type=zipfile.ZIP_DEFLATED,
+            )
+        os.replace(temporary_path, destination)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+    return destination, updated_manifest
+
+
 def copy_package(source_path: Path, destination_path: Path) -> Path:
     source = source_path.expanduser().resolve()
     destination = _package_destination(destination_path)
@@ -127,6 +201,30 @@ def copy_package(source_path: Path, destination_path: Path) -> Path:
         temporary_path.unlink(missing_ok=True)
         raise
     return destination
+
+
+def _manifest_with_catalog(
+    manifest: CxlogManifest,
+    catalog_path: Path,
+) -> CxlogManifest:
+    updated_assets: list[PackageAsset] = []
+    found_catalog = False
+    for asset in manifest.assets:
+        if asset.path != CATALOG_PATH:
+            updated_assets.append(asset)
+            continue
+        found_catalog = True
+        updated_assets.append(
+            PackageAsset(
+                path=CATALOG_PATH,
+                kind="catalog",
+                size_bytes=catalog_path.stat().st_size,
+                sha256=sha256_file(catalog_path),
+            )
+        )
+    if not found_catalog:
+        raise CxlogError("The CX Log manifest does not declare catalog.duckdb.")
+    return manifest.model_copy(update={"assets": updated_assets})
 
 
 def open_package(package_path: Path, session_path: Path) -> tuple[CxlogManifest, Path]:
@@ -212,12 +310,13 @@ def read_document_summary(
     *,
     document_id: str,
     saved: bool,
+    modified: bool = False,
 ) -> DocumentSummary:
     connection = duckdb.connect(str(catalog_path), read_only=True)
     try:
         source_row = connection.execute(
             """
-            SELECT filename, source_format, source_version, field_name
+            SELECT filename, source_format, source_version, field_name, file_size_bytes
             FROM sources LIMIT 1
             """
         ).fetchone()
@@ -228,7 +327,8 @@ def read_document_summary(
         for dataset_row in connection.execute(
             """
             SELECT id, name, kind, well_name, wellbore_name, row_count,
-                   index_mnemonic, index_unit, index_kind, index_minimum, index_maximum
+                   index_mnemonic, index_unit, index_kind, index_minimum, index_maximum,
+                   native_metadata_json
             FROM datasets ORDER BY position
             """
         ).fetchall():
@@ -269,6 +369,21 @@ def read_document_summary(
                         ],
                     )
                 )
+            native_metadata = json.loads(str(dataset_row[11]))
+            reference_value = native_metadata.get("time_index_reference", "none")
+            try:
+                time_index_reference = TimeIndexReference(str(reference_value))
+            except ValueError:
+                time_index_reference = TimeIndexReference.NONE
+            view_settings = _read_view_settings(
+                connection,
+                dataset_id,
+                time_index_reference,
+            )
+            scalar_curve_count = sum(
+                curve.storage_kind == StorageKind.PARQUET and not curve.sample_shape
+                for curve in curves
+            )
             datasets.append(
                 DocumentDatasetSummary(
                     id=dataset_id,
@@ -282,6 +397,9 @@ def read_document_summary(
                     index_kind=IndexKind(str(dataset_row[8])),
                     index_minimum=dataset_row[9],
                     index_maximum=dataset_row[10],
+                    time_index_reference=time_index_reference,
+                    view_settings=view_settings,
+                    scalar_curve_count=scalar_curve_count,
                     curves=curves,
                 )
             )
@@ -303,7 +421,10 @@ def read_document_summary(
             source_format=SourceFormat(str(source_row[1])),
             source_version=str(source_row[2]),
             field_name=str(source_row[3]),
+            file_size_bytes=int(source_row[4]),
+            scalar_curve_count=sum(dataset.scalar_curve_count for dataset in datasets),
             saved=saved,
+            modified=modified,
             datasets=datasets,
             preserved_object_count=preserved_object_count,
             warnings=warnings,
@@ -399,6 +520,17 @@ def _write_catalog(catalog_path: Path, result: ConversionResult) -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE dataset_view_settings(
+                dataset_id VARCHAR PRIMARY KEY,
+                time_display_mode VARCHAR NOT NULL,
+                time_zone VARCHAR NOT NULL,
+                manual_anchor_index DOUBLE,
+                manual_anchor_timestamp DOUBLE
+            )
+            """
+        )
         for dataset_position, dataset in enumerate(result.datasets):
             preview_rows: list[tuple[str, int, float, float | None]] = []
             connection.execute(
@@ -418,6 +550,18 @@ def _write_catalog(catalog_path: Path, result: ConversionResult) -> None:
                     dataset.index_maximum,
                     json.dumps(dataset.native_metadata, default=str, sort_keys=True),
                 ],
+            )
+            time_reference = str(
+                dataset.native_metadata.get("time_index_reference", "none")
+            )
+            default_mode = (
+                TimeDisplayMode.CLOCK.value
+                if time_reference == TimeIndexReference.ABSOLUTE_UTC.value
+                else TimeDisplayMode.ELAPSED.value
+            )
+            connection.execute(
+                "INSERT INTO dataset_view_settings VALUES (?, ?, ?, NULL, NULL)",
+                [dataset.id, default_mode, TimeZoneMode.UTC.value],
             )
             for channel in dataset.channels:
                 connection.execute(
@@ -519,6 +663,42 @@ def _write_catalog(catalog_path: Path, result: ConversionResult) -> None:
         connection.execute("CHECKPOINT")
     finally:
         connection.close()
+
+
+def _read_view_settings(
+    connection: duckdb.DuckDBPyConnection,
+    dataset_id: str,
+    time_index_reference: TimeIndexReference,
+) -> DatasetViewSettings:
+    table_exists = connection.execute(
+        """
+        SELECT count(*) FROM information_schema.tables
+        WHERE table_name = 'dataset_view_settings'
+        """
+    ).fetchone()
+    row = None
+    if table_exists is not None and int(table_exists[0]) > 0:
+        row = connection.execute(
+            """
+            SELECT time_display_mode, time_zone, manual_anchor_index,
+                   manual_anchor_timestamp
+            FROM dataset_view_settings WHERE dataset_id = ?
+            """,
+            [dataset_id],
+        ).fetchone()
+    if row is None:
+        default_mode = (
+            TimeDisplayMode.CLOCK
+            if time_index_reference == TimeIndexReference.ABSOLUTE_UTC
+            else TimeDisplayMode.ELAPSED
+        )
+        return DatasetViewSettings(time_display_mode=default_mode)
+    return DatasetViewSettings(
+        time_display_mode=TimeDisplayMode(str(row[0])),
+        time_zone=TimeZoneMode(str(row[1])),
+        manual_anchor_index=row[2],
+        manual_anchor_timestamp=row[3],
+    )
 
 
 def _asset_kind(path: Path) -> str:

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CancelJobData, CancelJobErrors, CancelJobResponses, CloseDocumentData, CloseDocumentErrors, CloseDocumentResponses, GetDocumentData, GetDocumentErrors, GetDocumentResponses, GetHealthData, GetHealthResponses, GetJobData, GetJobErrors, GetJobResponses, ImportLasData, ImportLasErrors, ImportLasResponses, OpenDocumentData, OpenDocumentErrors, OpenDocumentResponses, SaveDocumentAsData, SaveDocumentAsErrors, SaveDocumentAsResponses, VerifyPackageData, VerifyPackageErrors, VerifyPackageResponses } from './types.gen';
+import type { CancelJobData, CancelJobErrors, CancelJobResponses, CloseDocumentData, CloseDocumentErrors, CloseDocumentResponses, ExportDatasetCsvData, ExportDatasetCsvErrors, ExportDatasetCsvResponses, GetCursorValuesData, GetCursorValuesErrors, GetCursorValuesResponses, GetDocumentData, GetDocumentErrors, GetDocumentResponses, GetHealthData, GetHealthResponses, GetJobData, GetJobErrors, GetJobResponses, GetMetadataObjectData, GetMetadataObjectErrors, GetMetadataObjectResponses, GetScalarPreviewPageData, GetScalarPreviewPageErrors, GetScalarPreviewPageResponses, GetScalarVisibleRangeData, GetScalarVisibleRangeErrors, GetScalarVisibleRangeResponses, ImportLasData, ImportLasErrors, ImportLasResponses, ListMetadataObjectsData, ListMetadataObjectsErrors, ListMetadataObjectsResponses, OpenDocumentData, OpenDocumentErrors, OpenDocumentResponses, SaveDocumentAsData, SaveDocumentAsErrors, SaveDocumentAsResponses, UpdateDatasetViewSettingsData, UpdateDatasetViewSettingsErrors, UpdateDatasetViewSettingsResponses, VerifyPackageData, VerifyPackageErrors, VerifyPackageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,6 +51,76 @@ export const getDocument = <ThrowOnError extends boolean = false>(options: Optio
  * Close Document
  */
 export const closeDocument = <ThrowOnError extends boolean = false>(options: Options<CloseDocumentData, ThrowOnError>): RequestResult<CloseDocumentResponses, CloseDocumentErrors, ThrowOnError> => (options.client ?? client).post<CloseDocumentResponses, CloseDocumentErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}/close', ...options });
+
+/**
+ * Get Cursor Values
+ */
+export const getCursorValues = <ThrowOnError extends boolean = false>(options: Options<GetCursorValuesData, ThrowOnError>): RequestResult<GetCursorValuesResponses, GetCursorValuesErrors, ThrowOnError> => (options.client ?? client).post<GetCursorValuesResponses, GetCursorValuesErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/cursor-values',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Export Dataset Csv
+ */
+export const exportDatasetCsv = <ThrowOnError extends boolean = false>(options: Options<ExportDatasetCsvData, ThrowOnError>): RequestResult<ExportDatasetCsvResponses, ExportDatasetCsvErrors, ThrowOnError> => (options.client ?? client).post<ExportDatasetCsvResponses, ExportDatasetCsvErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/export-csv',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Scalar Preview Page
+ */
+export const getScalarPreviewPage = <ThrowOnError extends boolean = false>(options: Options<GetScalarPreviewPageData, ThrowOnError>): RequestResult<GetScalarPreviewPageResponses, GetScalarPreviewPageErrors, ThrowOnError> => (options.client ?? client).post<GetScalarPreviewPageResponses, GetScalarPreviewPageErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/preview',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Scalar Visible Range
+ */
+export const getScalarVisibleRange = <ThrowOnError extends boolean = false>(options: Options<GetScalarVisibleRangeData, ThrowOnError>): RequestResult<GetScalarVisibleRangeResponses, GetScalarVisibleRangeErrors, ThrowOnError> => (options.client ?? client).post<GetScalarVisibleRangeResponses, GetScalarVisibleRangeErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/visible-range',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Dataset View Settings
+ */
+export const updateDatasetViewSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateDatasetViewSettingsData, ThrowOnError>): RequestResult<UpdateDatasetViewSettingsResponses, UpdateDatasetViewSettingsErrors, ThrowOnError> => (options.client ?? client).put<UpdateDatasetViewSettingsResponses, UpdateDatasetViewSettingsErrors, ThrowOnError>({
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/view-settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Metadata Objects
+ */
+export const listMetadataObjects = <ThrowOnError extends boolean = false>(options: Options<ListMetadataObjectsData, ThrowOnError>): RequestResult<ListMetadataObjectsResponses, ListMetadataObjectsErrors, ThrowOnError> => (options.client ?? client).get<ListMetadataObjectsResponses, ListMetadataObjectsErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}/metadata-objects', ...options });
+
+/**
+ * Get Metadata Object
+ */
+export const getMetadataObject = <ThrowOnError extends boolean = false>(options: Options<GetMetadataObjectData, ThrowOnError>): RequestResult<GetMetadataObjectResponses, GetMetadataObjectErrors, ThrowOnError> => (options.client ?? client).get<GetMetadataObjectResponses, GetMetadataObjectErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}/metadata-objects/{object_id}', ...options });
 
 /**
  * Save Document As

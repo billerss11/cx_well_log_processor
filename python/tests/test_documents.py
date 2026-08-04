@@ -22,7 +22,11 @@ def test_las_can_be_saved_verified_and_reopened(tmp_path: Path) -> None:
     service = DocumentService()
     destination = tmp_path / "saved-log"
     try:
-        imported = service.open_document(SAMPLE_LAS_PATH, max_preview_points=200)
+        imported = service.open_document(
+            SAMPLE_LAS_PATH,
+            max_preview_points=200,
+            index_candidate_id="curve:0",
+        )
         saved_path = service.save_document(imported.id, destination)
         service.close_document(imported.id)
 
@@ -155,7 +159,11 @@ def test_http_open_job_reports_document_and_can_close() -> None:
     with TestClient(create_app()) as client:
         accepted = client.post(
             "/api/v1/documents/open",
-            json={"source_path": str(SAMPLE_LAS_PATH), "max_preview_points": 200},
+            json={
+                "source_path": str(SAMPLE_LAS_PATH),
+                "max_preview_points": 200,
+                "index_candidate_id": "curve:0",
+            },
         )
         assert accepted.status_code == 202
         job_id = accepted.json()["job_id"]
@@ -188,7 +196,16 @@ def test_cli_convert_and_package_verify(tmp_path: Path) -> None:
     destination = tmp_path / "cli-output.cxlog"
     runner = CliRunner()
 
-    conversion = runner.invoke(app, ["convert", str(SAMPLE_LAS_PATH), str(destination)])
+    conversion = runner.invoke(
+        app,
+        [
+            "convert",
+            str(SAMPLE_LAS_PATH),
+            str(destination),
+            "--index-candidate",
+            "curve:0",
+        ],
+    )
     verification = runner.invoke(app, ["package", "verify", str(destination)])
 
     assert conversion.exit_code == 0

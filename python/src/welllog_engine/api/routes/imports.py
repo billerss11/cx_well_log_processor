@@ -1,9 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from welllog_engine.adapters.formats.las.reader import (
-    LasFileTooLargeError,
-    LasImportError,
-)
+from welllog_engine.adapters.formats.las.errors import LasFileTooLargeError, LasImportError
 from welllog_engine.application.services.imports import import_las
 from welllog_engine.contracts.imports import (
     ImportErrorResponse,

@@ -12,13 +12,11 @@ from welllog_engine.adapters.formats.common import (
     slug,
     write_json,
 )
-from welllog_engine.adapters.formats.las.reader import (
-    LasImportError,
-    _header_value,
-    _validate_source,
-)
+from welllog_engine.adapters.formats.las.errors import LasImportError
+from welllog_engine.adapters.formats.las.reader import _header_value, _validate_source
+from welllog_engine.adapters.formats.las.table import normalize_las_table
 from welllog_engine.adapters.storage.cxlog import sha256_file
-from welllog_engine.contracts.documents import IndexKind, SourceFormat, StorageKind
+from welllog_engine.contracts.documents import SourceFormat, StorageKind
 from welllog_engine.domain.documents import (
     ConversionResult,
     ImportedChannel,
@@ -32,6 +30,7 @@ def convert_las(
     source_path: Path,
     staging_path: Path,
     max_preview_points: int,
+    index_candidate_id: str | None = None,
 ) -> ConversionResult:
     source = source_path.expanduser().resolve()
     _validate_source(source)
@@ -40,47 +39,58 @@ def convert_las(
     except Exception as error:
         raise LasImportError(f"Could not read LAS file: {error}") from error
 
-    data = np.asarray(las.data, dtype=float)
-    if data.ndim != 2 or data.shape[0] == 0 or data.shape[1] < 2:
+    table = normalize_las_table(las, index_candidate_id)
+    if table.row_count == 0 or not table.curves:
         raise LasImportError("The LAS file does not contain readable curve data.")
 
     document_id = uuid4().hex
     dataset_id = f"dataset-las-{document_id[:12]}"
-    index_curve = las.curves[0]
-    index_values = data[:, 0]
+    index_values = table.index_values
     finite_index = index_values[np.isfinite(index_values)]
     if not finite_index.size:
         raise LasImportError("The LAS file does not contain a valid index curve.")
 
     columns: dict[str, pa.Array] = {"index": pa.array(index_values, type=pa.float64())}
+    source_index_columns: dict[str, str] = {}
     channels: list[ImportedChannel] = []
     used_columns: set[str] = {"index"}
-    for position, curve in enumerate(las.curves[1:], start=1):
+    for mnemonic, values in table.source_index_columns.items():
+        column_name = _unique_column_name(f"source_{mnemonic}", 0, used_columns)
+        columns[column_name] = pa.array(values, from_pandas=True)
+        source_index_columns[mnemonic] = column_name
+    for channel_position, curve_data in enumerate(table.curves):
+        curve = curve_data.curve
+        position = curve_data.source_position
         mnemonic = str(curve.mnemonic or f"CURVE_{position}").strip()
-        column_name = slug(mnemonic).replace("-", "_")
-        if column_name in used_columns:
-            column_name = f"{column_name}_{position}"
-        used_columns.add(column_name)
-        values = data[:, position]
-        columns[column_name] = pa.array(values, type=pa.float64(), from_pandas=True)
+        column_name = _unique_column_name(mnemonic, position, used_columns)
+        values = curve_data.values
+        columns[column_name] = pa.array(values, from_pandas=True)
         minimum, maximum, null_count = numeric_statistics(values)
+        preview_samples = (
+            build_preview(index_values, curve_data.numeric_values, max_preview_points)
+            if curve_data.numeric_values is not None
+            else []
+        )
         channel_id = f"curve-{position}-{slug(mnemonic)}"
         channels.append(
             ImportedChannel(
                 id=channel_id,
-                position=position - 1,
+                position=channel_position,
                 mnemonic=mnemonic,
                 unit=str(curve.unit or "").strip(),
                 description=str(curve.descr or "Imported LAS curve").strip(),
                 minimum=minimum,
                 maximum=maximum,
-                sample_count=int(data.shape[0]),
-                null_count=null_count,
+                sample_count=table.row_count,
+                null_count=(null_count if curve_data.numeric_values is not None else 0),
                 sample_shape=[],
                 storage_kind=StorageKind.PARQUET,
                 asset_path=f"data/scalar/{dataset_id}.parquet",
-                preview_samples=build_preview(index_values, values, max_preview_points),
-                native_metadata={"parquet_column": column_name},
+                preview_samples=preview_samples,
+                native_metadata={
+                    "parquet_column": column_name,
+                    "data_type": "numeric" if curve_data.numeric_values is not None else "text",
+                },
             )
         )
 
@@ -106,27 +116,24 @@ def convert_las(
     )
     well_name = _header_value(las.well, "WELL", source.stem)
     field_name = _header_value(las.well, "FLD", "Unknown field")
-    index_mnemonic = str(index_curve.mnemonic or "INDEX").strip()
-    index_unit = str(index_curve.unit or "").strip()
-    index_kind = (
-        IndexKind.MEASURED_DEPTH
-        if index_mnemonic.casefold() in {"dept", "depth", "md"}
-        else IndexKind.OTHER
-    )
     dataset = ImportedDataset(
         id=dataset_id,
         name=f"LAS {_header_value(las.version, 'VERS', 'unknown')}",
         kind="log",
         well_name=well_name,
         wellbore_name="Imported wellbore",
-        row_count=int(data.shape[0]),
-        index_mnemonic=index_mnemonic,
-        index_unit=index_unit,
-        index_kind=index_kind,
+        row_count=table.row_count,
+        index_mnemonic=table.index_mnemonic,
+        index_unit=table.index_unit,
+        index_kind=table.index_kind,
         index_minimum=float(np.min(finite_index)),
         index_maximum=float(np.max(finite_index)),
         channels=channels,
-        native_metadata={"null_value": _header_value(las.well, "NULL", "")},
+        native_metadata={
+            "null_value": _header_value(las.well, "NULL", ""),
+            "source_index_columns": source_index_columns,
+            "time_index_reference": table.time_index_reference.value,
+        },
     )
     return ConversionResult(
         document_id=document_id,
@@ -150,8 +157,16 @@ def convert_las(
             )
         ],
         relationships=[],
-        warnings=[],
+        warnings=list(table.warnings),
     )
+
+
+def _unique_column_name(mnemonic: str, position: int, used: set[str]) -> str:
+    candidate = slug(mnemonic).replace("-", "_")
+    if candidate in used:
+        candidate = f"{candidate}_{position}"
+    used.add(candidate)
+    return candidate
 
 
 def _section_items(section: object) -> list[dict[str, object]]:

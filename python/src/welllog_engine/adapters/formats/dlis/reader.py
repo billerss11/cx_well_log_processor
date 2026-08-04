@@ -271,6 +271,9 @@ def _convert_frame(
                 "frame_fingerprint": str(getattr(frame, "fingerprint", frame_name)),
                 "direction": str(getattr(frame, "direction", "") or ""),
                 "spacing": str(getattr(frame, "spacing", "") or ""),
+                "time_index_reference": (
+                    "elapsed" if index_kind == IndexKind.TIME else "none"
+                ),
             },
         ),
         relationships,

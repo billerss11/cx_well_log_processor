@@ -338,7 +338,12 @@ def _convert_v1411_log(
         index_minimum=float(np.min(finite_index)) if finite_index.size else None,
         index_maximum=float(np.max(finite_index)) if finite_index.size else None,
         channels=channels,
-        native_metadata={"uid": _native_id(log, "")},
+        native_metadata={
+            "uid": _native_id(log, ""),
+            "time_index_reference": (
+                "absolute_utc" if "time" in index_type else "none"
+            ),
+        },
     )
 
 
@@ -519,7 +524,12 @@ def _convert_v2_log(
                 index_minimum=float(np.min(finite_index)) if finite_index.size else None,
                 index_maximum=float(np.max(finite_index)) if finite_index.size else None,
                 channels=channels,
-                native_metadata={"uuid": _native_id(log, "")},
+                native_metadata={
+                    "uuid": _native_id(log, ""),
+                    "time_index_reference": (
+                        "absolute_utc" if "time" in index_type.casefold() else "none"
+                    ),
+                },
             )
         )
     return datasets

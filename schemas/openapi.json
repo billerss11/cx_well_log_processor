@@ -1,6 +1,128 @@
 {
   "components": {
     "schemas": {
+      "CsvExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "all_scalar_curves": {
+            "default": false,
+            "title": "All Scalar Curves",
+            "type": "boolean"
+          },
+          "curve_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Curve Ids",
+            "type": "array"
+          },
+          "destination_path": {
+            "minLength": 1,
+            "title": "Destination Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "destination_path"
+        ],
+        "title": "CsvExportRequest",
+        "type": "object"
+      },
+      "CursorCurveValue": {
+        "additionalProperties": false,
+        "properties": {
+          "curve_id": {
+            "title": "Curve Id",
+            "type": "string"
+          },
+          "sample_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Index"
+          },
+          "status": {
+            "enum": [
+              "exact",
+              "interpolated",
+              "nearest",
+              "no_data"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "curve_id",
+          "value",
+          "sample_index",
+          "status"
+        ],
+        "title": "CursorCurveValue",
+        "type": "object"
+      },
+      "CursorValueRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "curve_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Curve Ids",
+            "type": "array"
+          },
+          "index": {
+            "title": "Index",
+            "type": "number"
+          }
+        },
+        "required": [
+          "curve_ids",
+          "index"
+        ],
+        "title": "CursorValueRequest",
+        "type": "object"
+      },
+      "CursorValueResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "requested_index": {
+            "title": "Requested Index",
+            "type": "number"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/CursorCurveValue"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requested_index",
+          "values"
+        ],
+        "title": "CursorValueResponse",
+        "type": "object"
+      },
       "CurvePreviewSample": {
         "additionalProperties": false,
         "properties": {
@@ -25,6 +147,82 @@
           "value"
         ],
         "title": "CurvePreviewSample",
+        "type": "object"
+      },
+      "DatasetViewSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "manual_anchor_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Anchor Index"
+          },
+          "manual_anchor_timestamp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Anchor Timestamp"
+          },
+          "time_display_mode": {
+            "$ref": "#/components/schemas/TimeDisplayMode",
+            "default": "elapsed"
+          },
+          "time_zone": {
+            "$ref": "#/components/schemas/TimeZoneMode",
+            "default": "utc"
+          }
+        },
+        "title": "DatasetViewSettings",
+        "type": "object"
+      },
+      "DatasetViewSettingsUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "manual_anchor_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Anchor Index"
+          },
+          "manual_anchor_timestamp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Anchor Timestamp"
+          },
+          "time_display_mode": {
+            "$ref": "#/components/schemas/TimeDisplayMode"
+          },
+          "time_zone": {
+            "$ref": "#/components/schemas/TimeZoneMode"
+          }
+        },
+        "required": [
+          "time_display_mode",
+          "time_zone"
+        ],
+        "title": "DatasetViewSettingsUpdate",
         "type": "object"
       },
       "DocumentCurveSummary": {
@@ -169,6 +367,17 @@
             "title": "Row Count",
             "type": "integer"
           },
+          "scalar_curve_count": {
+            "title": "Scalar Curve Count",
+            "type": "integer"
+          },
+          "time_index_reference": {
+            "$ref": "#/components/schemas/TimeIndexReference",
+            "default": "none"
+          },
+          "view_settings": {
+            "$ref": "#/components/schemas/DatasetViewSettings"
+          },
           "well_name": {
             "title": "Well Name",
             "type": "string"
@@ -190,6 +399,7 @@
           "index_kind",
           "index_minimum",
           "index_maximum",
+          "scalar_curve_count",
           "curves"
         ],
         "title": "DocumentDatasetSummary",
@@ -209,9 +419,17 @@
             "title": "Field Name",
             "type": "string"
           },
+          "file_size_bytes": {
+            "title": "File Size Bytes",
+            "type": "integer"
+          },
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "modified": {
+            "title": "Modified",
+            "type": "boolean"
           },
           "preserved_object_count": {
             "title": "Preserved Object Count",
@@ -220,6 +438,10 @@
           "saved": {
             "title": "Saved",
             "type": "boolean"
+          },
+          "scalar_curve_count": {
+            "title": "Scalar Curve Count",
+            "type": "integer"
           },
           "source_file": {
             "title": "Source File",
@@ -246,7 +468,10 @@
           "source_format",
           "source_version",
           "field_name",
+          "file_size_bytes",
+          "scalar_curve_count",
           "saved",
+          "modified",
           "datasets",
           "preserved_object_count",
           "warnings"
@@ -308,6 +533,7 @@
       "IndexKind": {
         "enum": [
           "measured_depth",
+          "true_vertical_depth",
           "time",
           "sample",
           "other"
@@ -364,6 +590,40 @@
               }
             ],
             "title": "Error"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Details"
+          },
+          "exported_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported Path"
           },
           "id": {
             "title": "Id",
@@ -602,9 +862,181 @@
         "title": "LasPreviewSample",
         "type": "object"
       },
+      "MetadataObjectDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "content_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Json"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata_path": {
+            "title": "Metadata Path",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "native_id": {
+            "title": "Native Id",
+            "type": "string"
+          },
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "parent_native_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Native Id"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "object_type",
+          "native_id",
+          "name",
+          "parent_native_id",
+          "metadata_path",
+          "content_type",
+          "size_bytes",
+          "truncated"
+        ],
+        "title": "MetadataObjectDetail",
+        "type": "object"
+      },
+      "MetadataObjectPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MetadataObjectSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "page_size",
+          "total",
+          "items"
+        ],
+        "title": "MetadataObjectPage",
+        "type": "object"
+      },
+      "MetadataObjectSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "native_id": {
+            "title": "Native Id",
+            "type": "string"
+          },
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "parent_native_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Native Id"
+          }
+        },
+        "required": [
+          "id",
+          "object_type",
+          "native_id",
+          "name",
+          "parent_native_id"
+        ],
+        "title": "MetadataObjectSummary",
+        "type": "object"
+      },
       "OpenDocumentRequest": {
         "additionalProperties": false,
         "properties": {
+          "index_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Candidate Id"
+          },
           "max_preview_points": {
             "default": 800,
             "maximum": 2000.0,
@@ -678,6 +1110,77 @@
         "title": "SaveDocumentRequest",
         "type": "object"
       },
+      "ScalarPreviewPageRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "curve_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "Curve Ids",
+            "type": "array"
+          },
+          "page": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 100,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "ScalarPreviewPageRequest",
+        "type": "object"
+      },
+      "ScalarVisibleRangeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "curve_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Curve Ids",
+            "type": "array"
+          },
+          "index_maximum": {
+            "title": "Index Maximum",
+            "type": "number"
+          },
+          "index_minimum": {
+            "title": "Index Minimum",
+            "type": "number"
+          },
+          "point_budget": {
+            "default": 8000,
+            "maximum": 100000.0,
+            "minimum": 100.0,
+            "title": "Point Budget",
+            "type": "integer"
+          },
+          "viewport_height": {
+            "maximum": 10000.0,
+            "minimum": 100.0,
+            "title": "Viewport Height",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "curve_ids",
+          "index_minimum",
+          "index_maximum",
+          "viewport_height"
+        ],
+        "title": "ScalarVisibleRangeRequest",
+        "type": "object"
+      },
       "SourceFormat": {
         "enum": [
           "LAS",
@@ -694,6 +1197,31 @@
           "metadata_only"
         ],
         "title": "StorageKind",
+        "type": "string"
+      },
+      "TimeDisplayMode": {
+        "enum": [
+          "elapsed",
+          "clock"
+        ],
+        "title": "TimeDisplayMode",
+        "type": "string"
+      },
+      "TimeIndexReference": {
+        "enum": [
+          "none",
+          "elapsed",
+          "absolute_utc"
+        ],
+        "title": "TimeIndexReference",
+        "type": "string"
+      },
+      "TimeZoneMode": {
+        "enum": [
+          "utc",
+          "local"
+        ],
+        "title": "TimeZoneMode",
         "type": "string"
       },
       "ValidationError": {
@@ -915,6 +1443,430 @@
         "summary": "Close Document",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/cursor-values": {
+      "post": {
+        "operationId": "getCursorValues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CursorValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CursorValueResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Cursor Values",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/export-csv": {
+      "post": {
+        "operationId": "exportDatasetCsv",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CsvExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Dataset Csv",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/preview": {
+      "post": {
+        "operationId": "getScalarPreviewPage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScalarPreviewPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scalar Preview Page",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/visible-range": {
+      "post": {
+        "operationId": "getScalarVisibleRange",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScalarVisibleRangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Scalar Visible Range",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/view-settings": {
+      "put": {
+        "operationId": "updateDatasetViewSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetViewSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetViewSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Dataset View Settings",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/metadata-objects": {
+      "get": {
+        "operationId": "listMetadataObjects",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataObjectPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Metadata Objects",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/metadata-objects/{object_id}": {
+      "get": {
+        "operationId": "getMetadataObject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "object_id",
+            "required": true,
+            "schema": {
+              "title": "Object Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataObjectDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Metadata Object",
+        "tags": [
+          "document data"
         ]
       }
     },

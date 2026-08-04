@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from welllog_engine.application.services.documents import document_service
+from welllog_engine.application.services.scalar_data import scalar_data_service
 from welllog_engine.application.services.system import get_health
 from welllog_engine.contracts.documents import (
     DocumentSummary,
@@ -20,10 +21,12 @@ class Engine:
         source_path: Path,
         *,
         max_preview_points: int = 800,
+        index_candidate_id: str | None = None,
     ) -> DocumentSummary:
         return document_service.open_document(
             source_path,
             max_preview_points=max_preview_points,
+            index_candidate_id=index_candidate_id,
         )
 
     def get_document(self, document_id: str) -> DocumentSummary:
@@ -47,3 +50,19 @@ class Engine:
 
     def verify_package(self, package_path: Path) -> PackageVerificationResponse:
         return document_service.verify(package_path)
+
+    def export_dataset_csv(
+        self,
+        document_id: str,
+        dataset_id: str,
+        destination_path: Path,
+        *,
+        curve_ids: list[str] | None = None,
+    ) -> Path:
+        return scalar_data_service.export_csv(
+            document_id,
+            dataset_id,
+            destination_path,
+            curve_ids=curve_ids,
+            cancel_requested=lambda: False,
+        )

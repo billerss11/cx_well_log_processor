@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from welllog_engine.application.services.documents import DocumentError, document_service
+from welllog_engine.application.services.scalar_data import scalar_data_service
 from welllog_engine.application.services.system import get_health
 
 app = typer.Typer(
@@ -47,10 +48,18 @@ def doctor(
 @app.command()
 def inspect(
     source: Annotated[Path, typer.Argument(exists=True, dir_okay=False, resolve_path=True)],
+    index_candidate: Annotated[
+        str | None,
+        typer.Option(help="LAS index candidate ID when the file is ambiguous."),
+    ] = None,
 ) -> None:
     """Inspect a well-log source or CX Log package."""
     try:
-        summary = document_service.inspect(source)
+        summary = document_service.open_document(
+            source,
+            index_candidate_id=index_candidate,
+        )
+        document_service.close_document(summary.id)
     except (DocumentError, ValueError, OSError) as error:
         typer.echo(str(error), err=True)
         raise typer.Exit(code=1) from error
@@ -61,14 +70,67 @@ def inspect(
 def convert(
     source: Annotated[Path, typer.Argument(exists=True, dir_okay=False, resolve_path=True)],
     destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    index_candidate: Annotated[
+        str | None,
+        typer.Option(help="LAS index candidate ID when the file is ambiguous."),
+    ] = None,
 ) -> None:
     """Convert a well-log source into a CX Log package."""
     try:
-        summary = document_service.convert(source, destination)
+        summary = document_service.open_document(
+            source,
+            index_candidate_id=index_candidate,
+        )
+        try:
+            document_service.save_document(summary.id, destination)
+            summary = document_service.get_document(summary.id)
+        finally:
+            document_service.close_document(summary.id)
     except (DocumentError, ValueError, OSError) as error:
         typer.echo(str(error), err=True)
         raise typer.Exit(code=1) from error
     typer.echo(summary.model_dump_json(indent=2))
+
+
+@app.command("export-csv")
+def export_csv(
+    source: Annotated[Path, typer.Argument(exists=True, dir_okay=False, resolve_path=True)],
+    destination: Annotated[Path, typer.Argument(dir_okay=False, resolve_path=True)],
+    dataset_id: Annotated[
+        str | None,
+        typer.Option(help="Dataset ID. Defaults to the first scalar dataset."),
+    ] = None,
+    curve: Annotated[
+        list[str] | None,
+        typer.Option(help="Curve ID to export. Repeat for multiple curves; omit for all."),
+    ] = None,
+) -> None:
+    """Export a complete scalar dataset to CSV."""
+    summary = document_service.open_document(source)
+    try:
+        selected_dataset = dataset_id or next(
+            (
+                dataset.id
+                for dataset in summary.datasets
+                if dataset.scalar_curve_count > 0
+            ),
+            None,
+        )
+        if selected_dataset is None:
+            raise DocumentError("The document does not contain a scalar dataset.")
+        exported = scalar_data_service.export_csv(
+            summary.id,
+            selected_dataset,
+            destination,
+            curve_ids=curve,
+            cancel_requested=lambda: False,
+        )
+    except (DocumentError, ValueError, OSError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=1) from error
+    finally:
+        document_service.close_document(summary.id)
+    typer.echo(str(exported))
 
 
 @package_app.command("verify")

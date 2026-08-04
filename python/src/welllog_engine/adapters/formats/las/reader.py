@@ -6,6 +6,12 @@ from typing import Any
 import lasio  # type: ignore[import-untyped]
 import numpy as np
 
+from welllog_engine.adapters.formats.las.errors import (
+    LasFileTooLargeError,
+    LasImportError,
+    LasIndexSelectionRequired,
+)
+from welllog_engine.adapters.formats.las.table import normalize_las_table
 from welllog_engine.contracts.imports import (
     LasCurveSummary,
     LasImportResponse,
@@ -15,15 +21,11 @@ from welllog_engine.contracts.imports import (
 MAX_STANDARD_LAS_BYTES = 64 * 1024 * 1024
 
 
-class LasImportError(ValueError):
-    pass
-
-
-class LasFileTooLargeError(LasImportError):
-    pass
-
-
-def read_las_preview(source_path: Path, max_preview_points: int) -> LasImportResponse:
+def read_las_preview(
+    source_path: Path,
+    max_preview_points: int,
+    index_candidate_id: str | None = None,
+) -> LasImportResponse:
     path = source_path.expanduser().resolve()
     _validate_source(path)
 
@@ -32,46 +34,53 @@ def read_las_preview(source_path: Path, max_preview_points: int) -> LasImportRes
     except Exception as error:
         raise LasImportError(f"Could not read LAS file: {error}") from error
 
-    data = np.asarray(las.data, dtype=float)
-    if data.ndim != 2 or data.shape[0] == 0 or data.shape[1] < 1:
-        raise LasImportError("The LAS file does not contain a readable data table.")
-
-    depth_values = data[:, 0]
+    try:
+        table = normalize_las_table(las, index_candidate_id)
+    except LasIndexSelectionRequired as error:
+        if index_candidate_id is not None:
+            raise
+        candidates = error.details.get("candidates")
+        first = candidates[0] if isinstance(candidates, list) and candidates else None
+        candidate_id = first.get("id") if isinstance(first, dict) else None
+        if not isinstance(candidate_id, str):
+            raise
+        table = normalize_las_table(las, candidate_id)
+    depth_values = table.index_values
     finite_depths = depth_values[np.isfinite(depth_values)]
     if finite_depths.size == 0:
-        raise LasImportError("The LAS file does not contain a valid depth index.")
+        raise LasImportError("The LAS file does not contain a valid index.")
 
-    row_count = int(data.shape[0])
+    row_count = table.row_count
     sample_indices = _sample_indices(row_count, max_preview_points)
     curve_summaries = [
         _summarize_curve(
-            curve=curve,
-            values=data[:, curve_index],
+            curve=curve_data.curve,
+            values=curve_data.values,
+            numeric_values=curve_data.numeric_values,
             depth_values=depth_values,
             sample_indices=sample_indices,
-            curve_index=curve_index,
+            curve_index=curve_data.source_position,
             row_count=row_count,
         )
-        for curve_index, curve in enumerate(las.curves[1:], start=1)
+        for curve_data in table.curves
     ]
 
     if not curve_summaries:
         raise LasImportError("The LAS file does not contain any curves besides the depth index.")
 
-    index_curve = las.curves[0]
     return LasImportResponse(
         source_file=path.name,
         file_size_bytes=path.stat().st_size,
         las_version=_header_value(las.version, "VERS", "unknown"),
         well_name=_header_value(las.well, "WELL", path.stem),
         field_name=_header_value(las.well, "FLD", "Unknown field"),
-        depth_mnemonic=str(index_curve.mnemonic or "DEPTH").strip(),
-        depth_unit=str(index_curve.unit or "").strip(),
+        depth_mnemonic=table.index_mnemonic,
+        depth_unit=table.index_unit,
         depth_minimum=float(np.min(finite_depths)),
         depth_maximum=float(np.max(finite_depths)),
         row_count=row_count,
         curves=curve_summaries,
-        warnings=[],
+        warnings=list(table.warnings),
     )
 
 
@@ -101,23 +110,34 @@ def _sample_indices(row_count: int, maximum_points: int) -> np.ndarray[Any, np.d
 def _summarize_curve(
     *,
     curve: Any,
-    values: np.ndarray[Any, np.dtype[np.float64]],
+    values: np.ndarray[Any, Any],
+    numeric_values: np.ndarray[Any, np.dtype[np.float64]] | None,
     depth_values: np.ndarray[Any, np.dtype[np.float64]],
     sample_indices: np.ndarray[Any, np.dtype[np.int64]],
     curve_index: int,
     row_count: int,
 ) -> LasCurveSummary:
-    finite_values = values[np.isfinite(values)]
+    finite_values = (
+        numeric_values[np.isfinite(numeric_values)]
+        if numeric_values is not None
+        else np.array([], dtype=float)
+    )
     mnemonic = str(curve.mnemonic or f"CURVE_{curve_index}").strip()
     description = re.sub(r"\s+", " ", str(curve.descr or "Imported LAS curve")).strip()
-    preview_samples = [
-        LasPreviewSample(
-            depth=float(depth_values[index]),
-            value=float(values[index]) if math.isfinite(float(values[index])) else None,
-        )
-        for index in sample_indices
-        if math.isfinite(float(depth_values[index]))
-    ]
+    preview_samples = []
+    if numeric_values is not None:
+        preview_samples = [
+            LasPreviewSample(
+                depth=float(depth_values[index]),
+                value=(
+                    float(numeric_values[index])
+                    if math.isfinite(float(numeric_values[index]))
+                    else None
+                ),
+            )
+            for index in sample_indices
+            if math.isfinite(float(depth_values[index]))
+        ]
 
     return LasCurveSummary(
         id=f"curve-{curve_index}-{_slug(mnemonic)}",
@@ -127,9 +147,17 @@ def _summarize_curve(
         minimum=float(np.min(finite_values)) if finite_values.size else None,
         maximum=float(np.max(finite_values)) if finite_values.size else None,
         sample_count=row_count,
-        null_count=row_count - int(finite_values.size),
+        null_count=(
+            row_count - int(finite_values.size)
+            if numeric_values is not None
+            else _text_null_count(values)
+        ),
         preview_samples=preview_samples,
     )
+
+
+def _text_null_count(values: np.ndarray[Any, Any]) -> int:
+    return sum(str(value).strip().casefold() in {"", "nan", "none"} for value in values)
 
 
 def _header_value(section: Any, mnemonic: str, fallback: str) -> str:

@@ -24,6 +24,7 @@ def open_document(request: OpenDocumentRequest) -> JobAcceptedResponse:
     return job_service.submit_open(
         Path(request.source_path),
         request.max_preview_points,
+        request.index_candidate_id,
     )
 
 

@@ -5,6 +5,74 @@ export type ClientOptions = {
 };
 
 /**
+ * CsvExportRequest
+ */
+export type CsvExportRequest = {
+    /**
+     * All Scalar Curves
+     */
+    all_scalar_curves?: boolean;
+    /**
+     * Curve Ids
+     */
+    curve_ids?: Array<string>;
+    /**
+     * Destination Path
+     */
+    destination_path: string;
+};
+
+/**
+ * CursorCurveValue
+ */
+export type CursorCurveValue = {
+    /**
+     * Curve Id
+     */
+    curve_id: string;
+    /**
+     * Sample Index
+     */
+    sample_index: number | null;
+    /**
+     * Status
+     */
+    status: 'exact' | 'interpolated' | 'nearest' | 'no_data';
+    /**
+     * Value
+     */
+    value: number | null;
+};
+
+/**
+ * CursorValueRequest
+ */
+export type CursorValueRequest = {
+    /**
+     * Curve Ids
+     */
+    curve_ids: Array<string>;
+    /**
+     * Index
+     */
+    index: number;
+};
+
+/**
+ * CursorValueResponse
+ */
+export type CursorValueResponse = {
+    /**
+     * Requested Index
+     */
+    requested_index: number;
+    /**
+     * Values
+     */
+    values: Array<CursorCurveValue>;
+};
+
+/**
  * CurvePreviewSample
  */
 export type CurvePreviewSample = {
@@ -16,6 +84,38 @@ export type CurvePreviewSample = {
      * Value
      */
     value: number | null;
+};
+
+/**
+ * DatasetViewSettings
+ */
+export type DatasetViewSettings = {
+    /**
+     * Manual Anchor Index
+     */
+    manual_anchor_index?: number | null;
+    /**
+     * Manual Anchor Timestamp
+     */
+    manual_anchor_timestamp?: number | null;
+    time_display_mode?: TimeDisplayMode;
+    time_zone?: TimeZoneMode;
+};
+
+/**
+ * DatasetViewSettingsUpdate
+ */
+export type DatasetViewSettingsUpdate = {
+    /**
+     * Manual Anchor Index
+     */
+    manual_anchor_index?: number | null;
+    /**
+     * Manual Anchor Timestamp
+     */
+    manual_anchor_timestamp?: number | null;
+    time_display_mode: TimeDisplayMode;
+    time_zone: TimeZoneMode;
 };
 
 /**
@@ -107,6 +207,12 @@ export type DocumentDatasetSummary = {
      */
     row_count: number;
     /**
+     * Scalar Curve Count
+     */
+    scalar_curve_count: number;
+    time_index_reference?: TimeIndexReference;
+    view_settings?: DatasetViewSettings;
+    /**
      * Well Name
      */
     well_name: string;
@@ -129,9 +235,17 @@ export type DocumentSummary = {
      */
     field_name: string;
     /**
+     * File Size Bytes
+     */
+    file_size_bytes: number;
+    /**
      * Id
      */
     id: string;
+    /**
+     * Modified
+     */
+    modified: boolean;
     /**
      * Preserved Object Count
      */
@@ -140,6 +254,10 @@ export type DocumentSummary = {
      * Saved
      */
     saved: boolean;
+    /**
+     * Scalar Curve Count
+     */
+    scalar_curve_count: number;
     /**
      * Source File
      */
@@ -196,7 +314,7 @@ export type ImportErrorResponse = {
 /**
  * IndexKind
  */
-export type IndexKind = 'measured_depth' | 'time' | 'sample' | 'other';
+export type IndexKind = 'measured_depth' | 'true_vertical_depth' | 'time' | 'sample' | 'other';
 
 /**
  * JobAcceptedResponse
@@ -222,6 +340,20 @@ export type JobStatusResponse = {
      * Error
      */
     error?: string | null;
+    /**
+     * Error Code
+     */
+    error_code?: string | null;
+    /**
+     * Error Details
+     */
+    error_details?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Exported Path
+     */
+    exported_path?: string | null;
     /**
      * Id
      */
@@ -370,9 +502,113 @@ export type LasPreviewSample = {
 };
 
 /**
+ * MetadataObjectDetail
+ */
+export type MetadataObjectDetail = {
+    /**
+     * Content Json
+     */
+    content_json?: {
+        [key: string]: unknown;
+    } | Array<unknown> | null;
+    /**
+     * Content Type
+     */
+    content_type: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Metadata Path
+     */
+    metadata_path: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Native Id
+     */
+    native_id: string;
+    /**
+     * Object Type
+     */
+    object_type: string;
+    /**
+     * Parent Native Id
+     */
+    parent_native_id: string | null;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Truncated
+     */
+    truncated: boolean;
+};
+
+/**
+ * MetadataObjectPage
+ */
+export type MetadataObjectPage = {
+    /**
+     * Items
+     */
+    items: Array<MetadataObjectSummary>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * MetadataObjectSummary
+ */
+export type MetadataObjectSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Native Id
+     */
+    native_id: string;
+    /**
+     * Object Type
+     */
+    object_type: string;
+    /**
+     * Parent Native Id
+     */
+    parent_native_id: string | null;
+};
+
+/**
  * OpenDocumentRequest
  */
 export type OpenDocumentRequest = {
+    /**
+     * Index Candidate Id
+     */
+    index_candidate_id?: string | null;
     /**
      * Max Preview Points
      */
@@ -416,6 +652,50 @@ export type SaveDocumentRequest = {
 };
 
 /**
+ * ScalarPreviewPageRequest
+ */
+export type ScalarPreviewPageRequest = {
+    /**
+     * Curve Ids
+     */
+    curve_ids?: Array<string>;
+    /**
+     * Page
+     */
+    page?: number;
+    /**
+     * Page Size
+     */
+    page_size?: number;
+};
+
+/**
+ * ScalarVisibleRangeRequest
+ */
+export type ScalarVisibleRangeRequest = {
+    /**
+     * Curve Ids
+     */
+    curve_ids: Array<string>;
+    /**
+     * Index Maximum
+     */
+    index_maximum: number;
+    /**
+     * Index Minimum
+     */
+    index_minimum: number;
+    /**
+     * Point Budget
+     */
+    point_budget?: number;
+    /**
+     * Viewport Height
+     */
+    viewport_height: number;
+};
+
+/**
  * SourceFormat
  */
 export type SourceFormat = 'LAS' | 'DLIS' | 'WITSML';
@@ -424,6 +704,21 @@ export type SourceFormat = 'LAS' | 'DLIS' | 'WITSML';
  * StorageKind
  */
 export type StorageKind = 'parquet' | 'zarr' | 'metadata_only';
+
+/**
+ * TimeDisplayMode
+ */
+export type TimeDisplayMode = 'elapsed' | 'clock';
+
+/**
+ * TimeIndexReference
+ */
+export type TimeIndexReference = 'none' | 'elapsed' | 'absolute_utc';
+
+/**
+ * TimeZoneMode
+ */
+export type TimeZoneMode = 'utc' | 'local';
 
 /**
  * ValidationError
@@ -572,6 +867,249 @@ export type CloseDocumentResponses = {
 };
 
 export type CloseDocumentResponse = CloseDocumentResponses[keyof CloseDocumentResponses];
+
+export type GetCursorValuesData = {
+    body: CursorValueRequest;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/cursor-values';
+};
+
+export type GetCursorValuesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetCursorValuesError = GetCursorValuesErrors[keyof GetCursorValuesErrors];
+
+export type GetCursorValuesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CursorValueResponse;
+};
+
+export type GetCursorValuesResponse = GetCursorValuesResponses[keyof GetCursorValuesResponses];
+
+export type ExportDatasetCsvData = {
+    body: CsvExportRequest;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/export-csv';
+};
+
+export type ExportDatasetCsvErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ExportDatasetCsvError = ExportDatasetCsvErrors[keyof ExportDatasetCsvErrors];
+
+export type ExportDatasetCsvResponses = {
+    /**
+     * Successful Response
+     */
+    202: JobAcceptedResponse;
+};
+
+export type ExportDatasetCsvResponse = ExportDatasetCsvResponses[keyof ExportDatasetCsvResponses];
+
+export type GetScalarPreviewPageData = {
+    body: ScalarPreviewPageRequest;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/preview';
+};
+
+export type GetScalarPreviewPageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetScalarPreviewPageError = GetScalarPreviewPageErrors[keyof GetScalarPreviewPageErrors];
+
+export type GetScalarPreviewPageResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetScalarVisibleRangeData = {
+    body: ScalarVisibleRangeRequest;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/scalar/visible-range';
+};
+
+export type GetScalarVisibleRangeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetScalarVisibleRangeError = GetScalarVisibleRangeErrors[keyof GetScalarVisibleRangeErrors];
+
+export type GetScalarVisibleRangeResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type UpdateDatasetViewSettingsData = {
+    body: DatasetViewSettingsUpdate;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/view-settings';
+};
+
+export type UpdateDatasetViewSettingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateDatasetViewSettingsError = UpdateDatasetViewSettingsErrors[keyof UpdateDatasetViewSettingsErrors];
+
+export type UpdateDatasetViewSettingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetViewSettings;
+};
+
+export type UpdateDatasetViewSettingsResponse = UpdateDatasetViewSettingsResponses[keyof UpdateDatasetViewSettingsResponses];
+
+export type ListMetadataObjectsData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+    };
+    url: '/api/v1/documents/{document_id}/metadata-objects';
+};
+
+export type ListMetadataObjectsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListMetadataObjectsError = ListMetadataObjectsErrors[keyof ListMetadataObjectsErrors];
+
+export type ListMetadataObjectsResponses = {
+    /**
+     * Successful Response
+     */
+    200: MetadataObjectPage;
+};
+
+export type ListMetadataObjectsResponse = ListMetadataObjectsResponses[keyof ListMetadataObjectsResponses];
+
+export type GetMetadataObjectData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Object Id
+         */
+        object_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/metadata-objects/{object_id}';
+};
+
+export type GetMetadataObjectErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetMetadataObjectError = GetMetadataObjectErrors[keyof GetMetadataObjectErrors];
+
+export type GetMetadataObjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: MetadataObjectDetail;
+};
+
+export type GetMetadataObjectResponse = GetMetadataObjectResponses[keyof GetMetadataObjectResponses];
 
 export type SaveDocumentAsData = {
     body: SaveDocumentRequest;

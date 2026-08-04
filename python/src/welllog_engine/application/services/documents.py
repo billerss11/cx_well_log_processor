@@ -11,6 +11,8 @@ from pathlib import Path
 from threading import RLock
 from uuid import uuid4
 
+import duckdb  # type: ignore[import-untyped]
+
 from welllog_engine.adapters.formats.dlis.reader import convert_dlis
 from welllog_engine.adapters.formats.las.converter import convert_las
 from welllog_engine.adapters.formats.witsml.reader import convert_witsml
@@ -18,14 +20,19 @@ from welllog_engine.adapters.storage.cxlog import (
     CXLOG_EXTENSION,
     CxlogError,
     copy_package,
+    extract_asset,
     finalize_staging,
     open_package,
     read_document_summary,
+    refresh_staging_manifest,
     remove_session_directory,
     verify_package,
     write_package,
+    write_updated_package,
 )
 from welllog_engine.contracts.documents import (
+    DatasetViewSettings,
+    DatasetViewSettingsUpdate,
     DocumentSummary,
     PackageVerificationResponse,
 )
@@ -44,6 +51,7 @@ class DocumentSession:
     saved: bool
     package_path: Path | None
     manifest: CxlogManifest
+    modified: bool = False
 
 
 def _convert_dlis_in_worker(
@@ -67,6 +75,7 @@ class DocumentService:
         source_path: Path,
         *,
         max_preview_points: int = 800,
+        index_candidate_id: str | None = None,
     ) -> DocumentSummary:
         source = source_path.expanduser().resolve()
         session_path = self._create_session_path()
@@ -83,7 +92,12 @@ class DocumentService:
                     manifest=manifest,
                 )
             else:
-                result = self._convert_source(source, session_path, max_preview_points)
+                result = self._convert_source(
+                    source,
+                    session_path,
+                    max_preview_points,
+                    index_candidate_id,
+                )
                 manifest = finalize_staging(session_path, result)
                 session = DocumentSession(
                     id=result.document_id,
@@ -109,14 +123,94 @@ class DocumentService:
     def save_document(self, document_id: str, destination_path: Path) -> Path:
         session = self._get_session(document_id)
         if (session.working_path / "manifest.json").is_file():
+            session.manifest = refresh_staging_manifest(
+                session.working_path,
+                session.manifest,
+            )
             destination = write_package(session.working_path, destination_path)
+        elif session.package_path is not None and session.modified:
+            destination, session.manifest = write_updated_package(
+                session.package_path,
+                session.working_path,
+                session.manifest,
+                destination_path,
+            )
         elif session.package_path is not None:
             destination = copy_package(session.package_path, destination_path)
         else:
             raise DocumentError("The open document has no package data to save.")
         session.saved = True
         session.package_path = destination
+        session.modified = False
         return destination
+
+    def catalog_path(self, document_id: str) -> Path:
+        return self._get_session(document_id).catalog_path
+
+    def resolve_asset(self, document_id: str, asset_path: str) -> Path:
+        session = self._get_session(document_id)
+        destination = session.working_path / Path(asset_path)
+        if destination.is_file():
+            return destination
+        asset = next(
+            (item for item in session.manifest.assets if item.path == asset_path),
+            None,
+        )
+        if asset is None or session.package_path is None:
+            raise DocumentError(f"Document asset {asset_path} was not found.")
+        try:
+            return extract_asset(
+                session.package_path,
+                session.working_path,
+                asset,
+            )
+        except CxlogError as error:
+            raise DocumentError(str(error)) from error
+
+    def update_view_settings(
+        self,
+        document_id: str,
+        dataset_id: str,
+        settings: DatasetViewSettingsUpdate,
+    ) -> DatasetViewSettings:
+        session = self._get_session(document_id)
+        connection = duckdb.connect(str(session.catalog_path))
+        try:
+            dataset_row = connection.execute(
+                "SELECT count(*) FROM datasets WHERE id = ?",
+                [dataset_id],
+            ).fetchone()
+            if dataset_row is None or int(dataset_row[0]) == 0:
+                raise DocumentError(f"Dataset {dataset_id} was not found.")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dataset_view_settings(
+                    dataset_id VARCHAR PRIMARY KEY,
+                    time_display_mode VARCHAR NOT NULL,
+                    time_zone VARCHAR NOT NULL,
+                    manual_anchor_index DOUBLE,
+                    manual_anchor_timestamp DOUBLE
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO dataset_view_settings
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    dataset_id,
+                    settings.time_display_mode.value,
+                    settings.time_zone.value,
+                    settings.manual_anchor_index,
+                    settings.manual_anchor_timestamp,
+                ],
+            )
+            connection.execute("CHECKPOINT")
+        finally:
+            connection.close()
+        session.modified = True
+        return DatasetViewSettings(**settings.model_dump())
 
     def close_document(self, document_id: str) -> None:
         with self._lock:
@@ -156,10 +250,16 @@ class DocumentService:
         source: Path,
         session_path: Path,
         max_preview_points: int,
+        index_candidate_id: str | None,
     ) -> ConversionResult:
         suffix = source.suffix.casefold()
         if suffix == ".las":
-            return convert_las(source, session_path, max_preview_points)
+            return convert_las(
+                source,
+                session_path,
+                max_preview_points,
+                index_candidate_id,
+            )
         if suffix == ".dlis":
             with ProcessPoolExecutor(
                 max_workers=1,
@@ -182,6 +282,7 @@ class DocumentService:
             session.catalog_path,
             document_id=session.id,
             saved=session.saved,
+            modified=session.modified,
         )
 
     def _get_session(self, document_id: str) -> DocumentSession:
@@ -253,11 +354,16 @@ def _windows_pid_is_running(pid: int) -> bool:
 document_service = DocumentService()
 
 
-def open_document(source_path: Path, max_preview_points: int = 800) -> DocumentSummary:
+def open_document(
+    source_path: Path,
+    max_preview_points: int = 800,
+    index_candidate_id: str | None = None,
+) -> DocumentSummary:
     try:
         return document_service.open_document(
             source_path,
             max_preview_points=max_preview_points,
+            index_candidate_id=index_candidate_id,
         )
     except CxlogError as error:
         raise DocumentError(str(error)) from error
