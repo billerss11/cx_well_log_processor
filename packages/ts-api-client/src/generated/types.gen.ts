@@ -642,6 +642,103 @@ export type PackageVerificationResponse = {
 };
 
 /**
+ * QcIssue
+ */
+export type QcIssue = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Curve Id
+     */
+    curve_id?: string | null;
+    /**
+     * Curve Mnemonic
+     */
+    curve_mnemonic?: string | null;
+    /**
+     * Evidence
+     */
+    evidence: {
+        [key: string]: boolean | number | number | string | null;
+    };
+    /**
+     * Index Maximum
+     */
+    index_maximum?: number | null;
+    /**
+     * Index Minimum
+     */
+    index_minimum?: number | null;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Rule Version
+     */
+    rule_version?: string;
+    scope: QcScope;
+    severity: QcSeverity;
+};
+
+/**
+ * QcReport
+ */
+export type QcReport = {
+    /**
+     * Dataset Id
+     */
+    dataset_id: string;
+    /**
+     * Document Id
+     */
+    document_id: string;
+    /**
+     * Issues
+     */
+    issues: Array<QcIssue>;
+    summary: QcSummary;
+};
+
+/**
+ * QcScope
+ */
+export type QcScope = 'dataset' | 'curve';
+
+/**
+ * QcSeverity
+ */
+export type QcSeverity = 'info' | 'warning' | 'error';
+
+/**
+ * QcSummary
+ */
+export type QcSummary = {
+    /**
+     * Checks Run
+     */
+    checks_run: number;
+    /**
+     * Error Count
+     */
+    error_count: number;
+    /**
+     * Info Count
+     */
+    info_count: number;
+    /**
+     * Issue Count
+     */
+    issue_count: number;
+    /**
+     * Warning Count
+     */
+    warning_count: number;
+};
+
+/**
  * SaveDocumentRequest
  */
 export type SaveDocumentRequest = {
@@ -935,6 +1032,40 @@ export type ExportDatasetCsvResponses = {
 };
 
 export type ExportDatasetCsvResponse = ExportDatasetCsvResponses[keyof ExportDatasetCsvResponses];
+
+export type RunDatasetQcData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/qc';
+};
+
+export type RunDatasetQcErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RunDatasetQcError = RunDatasetQcErrors[keyof RunDatasetQcErrors];
+
+export type RunDatasetQcResponses = {
+    /**
+     * Successful Response
+     */
+    200: QcReport;
+};
+
+export type RunDatasetQcResponse = RunDatasetQcResponses[keyof RunDatasetQcResponses];
 
 export type GetScalarPreviewPageData = {
     body: ScalarPreviewPageRequest;

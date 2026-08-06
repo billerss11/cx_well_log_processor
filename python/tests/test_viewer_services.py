@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from welllog_engine.api import create_app
 from welllog_engine.application.services.documents import DocumentService
 from welllog_engine.application.services.metadata import MetadataService
+from welllog_engine.application.services.qc import QualityControlService
 from welllog_engine.application.services.scalar_data import ExportCancelled, ScalarDataService
 from welllog_engine.contracts.documents import (
     DatasetViewSettingsUpdate,
@@ -78,6 +79,36 @@ def test_scalar_queries_are_bounded_and_cursor_is_honest() -> None:
             value.status in {"exact", "interpolated", "no_data"}
             for value in cursor.values
         )
+    finally:
+        service.close_all()
+
+
+def test_basic_qc_report_uses_document_catalog_and_scalar_assets() -> None:
+    service = DocumentService()
+    qc = QualityControlService(service)
+    try:
+        summary = service.open_document(SAMPLE_LAS_PATH, index_candidate_id="curve:0")
+        dataset = summary.datasets[0]
+
+        report = qc.run_dataset(summary.id, dataset.id)
+
+        assert report.document_id == summary.id
+        assert report.dataset_id == dataset.id
+        assert report.summary.checks_run == dataset.scalar_curve_count * 4 + 6
+        assert report.summary.issue_count == len(report.issues)
+        assert {issue.code for issue in report.issues} <= {
+            "CURVE_CONSTANT",
+            "CURVE_DUPLICATE_MNEMONIC",
+            "CURVE_EXCESSIVE_NULLS",
+            "CURVE_INVALID_NUMERIC",
+            "CURVE_UNIT_MISSING",
+            "INDEX_DUPLICATE",
+            "INDEX_INVALID",
+            "INDEX_IRREGULAR_STEP",
+            "INDEX_LARGE_GAP",
+            "INDEX_NON_MONOTONIC",
+            "INDEX_REVERSED",
+        }
     finally:
         service.close_all()
 

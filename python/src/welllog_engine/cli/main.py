@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from welllog_engine.application.services.documents import DocumentError, document_service
+from welllog_engine.application.services.qc import quality_control_service
 from welllog_engine.application.services.scalar_data import scalar_data_service
 from welllog_engine.application.services.system import get_health
 
@@ -14,7 +15,9 @@ app = typer.Typer(
     pretty_exceptions_enable=False,
 )
 package_app = typer.Typer(help="Inspect CX Log package files.")
+qc_app = typer.Typer(help="Run quality-control checks.")
 app.add_typer(package_app, name="package")
+app.add_typer(qc_app, name="qc")
 
 
 @app.callback()
@@ -131,6 +134,43 @@ def export_csv(
     finally:
         document_service.close_document(summary.id)
     typer.echo(str(exported))
+
+
+@qc_app.command("run")
+def run_qc(
+    source: Annotated[Path, typer.Argument(exists=True, dir_okay=False, resolve_path=True)],
+    dataset_id: Annotated[
+        str | None,
+        typer.Option(help="Dataset ID. Defaults to the first scalar dataset."),
+    ] = None,
+    index_candidate: Annotated[
+        str | None,
+        typer.Option(help="LAS index candidate ID when the file is ambiguous."),
+    ] = None,
+) -> None:
+    """Run basic quality-control checks for one scalar dataset."""
+    summary = document_service.open_document(
+        source,
+        index_candidate_id=index_candidate,
+    )
+    try:
+        selected_dataset = dataset_id or next(
+            (
+                dataset.id
+                for dataset in summary.datasets
+                if dataset.scalar_curve_count > 0
+            ),
+            None,
+        )
+        if selected_dataset is None:
+            raise DocumentError("The document does not contain a scalar dataset.")
+        report = quality_control_service.run_dataset(summary.id, selected_dataset)
+    except (DocumentError, ValueError, OSError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(code=1) from error
+    finally:
+        document_service.close_document(summary.id)
+    typer.echo(report.model_dump_json(indent=2))
 
 
 @package_app.command("verify")

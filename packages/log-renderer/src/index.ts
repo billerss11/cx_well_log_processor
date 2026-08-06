@@ -1,6 +1,7 @@
 export { createScalarLogRenderer } from "./renderer";
 export type {
   ScalarLogCurve,
+  ScalarLogQcMarker,
   ScalarLogRenderModel,
   ScalarLogRenderer,
   ScalarLogRendererEvents,

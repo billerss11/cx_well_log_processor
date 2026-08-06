@@ -4,6 +4,8 @@ import type {
   DatasetViewSettingsUpdate,
   MetadataObjectDetail,
   MetadataObjectSummary,
+  QcIssue,
+  QcReport,
 } from "@welllog/ts-api-client";
 import {
   Alert,
@@ -27,6 +29,7 @@ import {
   getMetadataObjects,
 } from "../../services/engineApi";
 import { DataPreviewDrawer } from "./DataPreviewDrawer";
+import { QualityControlPanel } from "./QualityControlPanel";
 import {
   formatCurveValue,
   type CurveDefinition,
@@ -40,7 +43,12 @@ interface CurveInspectorProps {
   readonly document: WorkspaceDocument;
   readonly visibleCurveIds: readonly string[];
   readonly busy: boolean;
+  readonly qcReport: QcReport | null;
+  readonly qcLoading: boolean;
+  readonly qcError: string | null;
   readonly onExport: (allScalarCurves: boolean) => Promise<void>;
+  readonly onQcIssueSelect: (issue: QcIssue) => void;
+  readonly onQcReload: () => void;
   readonly onViewSettingsSave: (settings: DatasetViewSettingsUpdate) => Promise<void>;
 }
 
@@ -50,7 +58,12 @@ export function CurveInspector({
   document,
   visibleCurveIds,
   busy,
+  qcReport,
+  qcLoading,
+  qcError,
   onExport,
+  onQcIssueSelect,
+  onQcReload,
   onViewSettingsSave,
 }: CurveInspectorProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -115,6 +128,27 @@ export function CurveInspector({
                 onPreview={() => setPreviewOpen(true)}
                 onViewSettingsSave={onViewSettingsSave}
                 selectedCount={visibleCurveIds.length}
+              />
+            ),
+          },
+          {
+            key: "qc",
+            label: (
+              <span className="qc-tab-label">
+                QC
+                {qcReport?.summary.issue_count ? (
+                  <span>{qcReport.summary.issue_count}</span>
+                ) : null}
+              </span>
+            ),
+            children: (
+              <QualityControlPanel
+                error={qcError}
+                loading={qcLoading}
+                onIssueSelect={onQcIssueSelect}
+                onReload={onQcReload}
+                report={qcReport}
+                selectedCurveId={curve.id}
               />
             ),
           },

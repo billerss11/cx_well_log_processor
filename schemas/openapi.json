@@ -1095,6 +1095,188 @@
         "title": "PackageVerificationResponse",
         "type": "object"
       },
+      "QcIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "curve_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curve Id"
+          },
+          "curve_mnemonic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curve Mnemonic"
+          },
+          "evidence": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Evidence",
+            "type": "object"
+          },
+          "index_maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Maximum"
+          },
+          "index_minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Minimum"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "rule_version": {
+            "default": "1.0.0",
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/QcScope"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/QcSeverity"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "scope",
+          "message",
+          "evidence"
+        ],
+        "title": "QcIssue",
+        "type": "object"
+      },
+      "QcReport": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_id": {
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/QcIssue"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/QcSummary"
+          }
+        },
+        "required": [
+          "document_id",
+          "dataset_id",
+          "summary",
+          "issues"
+        ],
+        "title": "QcReport",
+        "type": "object"
+      },
+      "QcScope": {
+        "enum": [
+          "dataset",
+          "curve"
+        ],
+        "title": "QcScope",
+        "type": "string"
+      },
+      "QcSeverity": {
+        "enum": [
+          "info",
+          "warning",
+          "error"
+        ],
+        "title": "QcSeverity",
+        "type": "string"
+      },
+      "QcSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "checks_run": {
+            "title": "Checks Run",
+            "type": "integer"
+          },
+          "error_count": {
+            "title": "Error Count",
+            "type": "integer"
+          },
+          "info_count": {
+            "title": "Info Count",
+            "type": "integer"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "warning_count": {
+            "title": "Warning Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "checks_run",
+          "issue_count",
+          "error_count",
+          "warning_count",
+          "info_count"
+        ],
+        "title": "QcSummary",
+        "type": "object"
+      },
       "SaveDocumentRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1563,6 +1745,57 @@
           }
         },
         "summary": "Export Dataset Csv",
+        "tags": [
+          "document data"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/datasets/{dataset_id}/qc": {
+      "get": {
+        "operationId": "runDatasetQc",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QcReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Dataset Qc",
         "tags": [
           "document data"
         ]

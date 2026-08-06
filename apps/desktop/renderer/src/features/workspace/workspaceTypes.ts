@@ -49,6 +49,13 @@ export interface DatasetViewSettings {
   readonly manualAnchorTimestamp: number | null;
 }
 
+export interface QcNavigationTarget {
+  readonly key: number;
+  readonly curveId: string | null;
+  readonly indexMinimum: number;
+  readonly indexMaximum: number;
+}
+
 export interface WorkspaceDocument {
   readonly id: string;
   readonly sourceFile: string;

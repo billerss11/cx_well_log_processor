@@ -124,6 +124,8 @@ test("lets the user select, clear, and restore plotted curves", () => {
         document={document}
         onCurveSelect={onCurveSelect}
         onVisibleCurveIdsChange={setVisibleCurveIds}
+        qcIssues={[]}
+        qcNavigationTarget={null}
         selectedCurveId="gr"
         visibleCurveIds={visibleCurveIds}
       />

@@ -79,6 +79,7 @@ Useful commands:
 ```powershell
 conda run -n cx_well_log_backend welllog doctor --output json
 conda run -n cx_well_log_backend welllog inspect files/test.las
+conda run -n cx_well_log_backend welllog qc run files/test.las --index-candidate curve:0
 conda run -n cx_well_log_backend welllog convert files/test.las output.cxlog
 conda run -n cx_well_log_backend welllog package verify output.cxlog
 conda run --no-capture-output -n cx_well_log_backend corepack pnpm check

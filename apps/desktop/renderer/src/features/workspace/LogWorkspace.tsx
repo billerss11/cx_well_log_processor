@@ -3,8 +3,9 @@ import CompressOutlined from "@ant-design/icons/CompressOutlined";
 import ZoomInOutlined from "@ant-design/icons/ZoomInOutlined";
 import ZoomOutOutlined from "@ant-design/icons/ZoomOutOutlined";
 import { chunkCurveIds } from "@welllog/arrow-data-client";
+import type { QcIssue } from "@welllog/ts-api-client";
 import { Alert, Button, Spin, Tag, Tooltip, Typography } from "antd";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useScalarViewport } from "../../hooks/useScalarViewport";
 import { getExactCursorValues } from "../../services/engineApi";
@@ -13,6 +14,7 @@ import {
   findCurve,
   formatCurveValue,
   isDisplayableCurve,
+  type QcNavigationTarget,
   type WorkspaceDataset,
   type WorkspaceDocument,
 } from "./workspaceTypes";
@@ -36,6 +38,8 @@ interface LogWorkspaceProps {
   readonly visibleCurveIds: readonly string[];
   readonly onCurveSelect: (curveId: string) => void;
   readonly onVisibleCurveIdsChange: (curveIds: readonly string[]) => void;
+  readonly qcIssues: readonly QcIssue[];
+  readonly qcNavigationTarget: QcNavigationTarget | null;
 }
 
 export function LogWorkspace({
@@ -45,6 +49,8 @@ export function LogWorkspace({
   visibleCurveIds,
   onCurveSelect,
   onVisibleCurveIdsChange,
+  qcIssues,
+  qcNavigationTarget,
 }: LogWorkspaceProps) {
   const fullIndexMinimum = dataset.indexMinimum ?? 0;
   const fullIndexMaximum = dataset.indexMaximum ?? Math.max(dataset.rowCount - 1, 1);
@@ -96,6 +102,44 @@ export function LogWorkspace({
     setViewportHeight(Math.max(100, element.clientHeight));
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!qcNavigationTarget) {
+      return;
+    }
+    const issueMinimum = Math.max(
+      fullIndexMinimum,
+      Math.min(qcNavigationTarget.indexMinimum, qcNavigationTarget.indexMaximum),
+    );
+    const issueMaximum = Math.min(
+      fullIndexMaximum,
+      Math.max(qcNavigationTarget.indexMinimum, qcNavigationTarget.indexMaximum),
+    );
+    const center = (issueMinimum + issueMaximum) / 2;
+    const requestedSpan = Math.min(
+      fullIndexSpan,
+      Math.max(minimumIndexSpan, issueMaximum - issueMinimum, fullIndexSpan / 12),
+    );
+    let minimum = center - requestedSpan / 2;
+    let maximum = center + requestedSpan / 2;
+    if (minimum < fullIndexMinimum) {
+      minimum = fullIndexMinimum;
+      maximum = fullIndexMinimum + requestedSpan;
+    }
+    if (maximum > fullIndexMaximum) {
+      maximum = fullIndexMaximum;
+      minimum = fullIndexMaximum - requestedSpan;
+    }
+    setCursorIndex(center);
+    setExactCursorValues(new Map());
+    setVisibleRange({ minimum, maximum });
+  }, [
+    fullIndexMaximum,
+    fullIndexMinimum,
+    fullIndexSpan,
+    minimumIndexSpan,
+    qcNavigationTarget,
+  ]);
 
   function setIndexSpan(nextSpan: number): void {
     const boundedSpan = Math.min(
@@ -273,6 +317,7 @@ export function LogWorkspace({
                 onCursorChange={lockCursor}
                 onCurveSelect={onCurveSelect}
                 onViewportChange={setVisibleRange}
+                qcIssues={qcIssues}
                 samplesByCurve={viewport.samplesByCurve}
                 selectedCurveId={selectedCurveId}
                 visibleRange={visibleRange}

@@ -19,6 +19,14 @@ export interface ScalarLogViewport {
   readonly maximum: number;
 }
 
+export interface ScalarLogQcMarker {
+  readonly code: string;
+  readonly label: string;
+  readonly severity: "info" | "warning" | "error";
+  readonly index: number;
+  readonly curveId: string | null;
+}
+
 export interface ScalarLogRenderModel {
   readonly indexMnemonic: string;
   readonly indexUnit: string;
@@ -33,6 +41,7 @@ export interface ScalarLogRenderModel {
   readonly timeZone: "utc" | "local";
   readonly manualAnchorIndex: number | null;
   readonly manualAnchorTimestamp: number | null;
+  readonly qcMarkers?: readonly ScalarLogQcMarker[];
 }
 
 export interface ScalarLogRendererEvents {

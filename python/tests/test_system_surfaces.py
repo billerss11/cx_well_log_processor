@@ -27,6 +27,11 @@ def test_openapi_uses_stable_health_operation_id() -> None:
     operation = schema["paths"]["/api/v1/health"]["get"]
     assert operation["operationId"] == "getHealth"
 
+    qc_operation = schema["paths"][
+        "/api/v1/documents/{document_id}/datasets/{dataset_id}/qc"
+    ]["get"]
+    assert qc_operation["operationId"] == "runDatasetQc"
+
 
 def test_development_api_allows_desktop_origin(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("WELLLOG_DEV_CORS", "1")

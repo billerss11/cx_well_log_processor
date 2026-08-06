@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, Response, status
 from welllog_engine.application.services.documents import DocumentError, document_service
 from welllog_engine.application.services.jobs import job_service
 from welllog_engine.application.services.metadata import metadata_service
+from welllog_engine.application.services.qc import quality_control_service
 from welllog_engine.application.services.scalar_data import (
     ARROW_STREAM_MEDIA_TYPE,
     scalar_data_service,
@@ -21,8 +22,20 @@ from welllog_engine.contracts.documents import (
     ScalarPreviewPageRequest,
     ScalarVisibleRangeRequest,
 )
+from welllog_engine.contracts.qc import QcReport
 
 router = APIRouter(prefix="/documents", tags=["document data"])
+
+
+@router.get(
+    "/{document_id}/datasets/{dataset_id}/qc",
+    operation_id="runDatasetQc",
+)
+def run_dataset_qc(document_id: str, dataset_id: str) -> QcReport:
+    try:
+        return quality_control_service.run_dataset(document_id, dataset_id)
+    except DocumentError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
 
 
 @router.post(

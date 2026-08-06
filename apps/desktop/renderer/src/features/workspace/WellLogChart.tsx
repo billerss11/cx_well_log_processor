@@ -1,9 +1,11 @@
 import {
   createScalarLogRenderer,
   type ScalarLogCurve,
+  type ScalarLogQcMarker,
   type ScalarLogRenderModel,
   type ScalarLogRenderer,
 } from "@welllog/log-renderer";
+import type { QcIssue } from "@welllog/ts-api-client";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
@@ -28,6 +30,7 @@ interface WellLogChartProps {
   readonly indexUnit: string;
   readonly selectedCurveId: string;
   readonly visibleRange: VisibleIndexRange;
+  readonly qcIssues: readonly QcIssue[];
   readonly onCursorChange: (index: number) => void;
   readonly onCurveSelect: (curveId: string) => void;
   readonly onViewportChange: (range: VisibleIndexRange) => void;
@@ -47,6 +50,7 @@ export function WellLogChart({
   indexUnit,
   selectedCurveId,
   visibleRange,
+  qcIssues,
   onCursorChange,
   onCurveSelect,
   onViewportChange,
@@ -102,6 +106,19 @@ export function WellLogChart({
       timeZone: dataset.viewSettings.timeZone,
       manualAnchorIndex: dataset.viewSettings.manualAnchorIndex,
       manualAnchorTimestamp: dataset.viewSettings.manualAnchorTimestamp,
+      qcMarkers: qcIssues.flatMap<ScalarLogQcMarker>((issue) =>
+        issue.index_minimum == null
+          ? []
+          : [
+              {
+                code: issue.code,
+                curveId: issue.curve_id ?? null,
+                index: issue.index_minimum,
+                label: issue.code.replace(/^(CURVE|INDEX)_/, ""),
+                severity: issue.severity,
+              },
+            ],
+      ),
     }),
     [
       cursorIndex,
@@ -109,6 +126,7 @@ export function WellLogChart({
       fullRange,
       indexMnemonic,
       indexUnit,
+      qcIssues,
       rendererCurves,
       selectedCurveId,
       visibleRange,

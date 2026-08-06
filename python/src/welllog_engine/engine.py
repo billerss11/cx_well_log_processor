@@ -1,12 +1,14 @@
 from pathlib import Path
 
 from welllog_engine.application.services.documents import document_service
+from welllog_engine.application.services.qc import quality_control_service
 from welllog_engine.application.services.scalar_data import scalar_data_service
 from welllog_engine.application.services.system import get_health
 from welllog_engine.contracts.documents import (
     DocumentSummary,
     PackageVerificationResponse,
 )
+from welllog_engine.contracts.qc import QcReport
 from welllog_engine.contracts.system import HealthResponse
 
 
@@ -66,3 +68,6 @@ class Engine:
             curve_ids=curve_ids,
             cancel_requested=lambda: False,
         )
+
+    def run_dataset_qc(self, document_id: str, dataset_id: str) -> QcReport:
+        return quality_control_service.run_dataset(document_id, dataset_id)

@@ -2,6 +2,7 @@ import CloseOutlined from "@ant-design/icons/CloseOutlined";
 import FolderOpenOutlined from "@ant-design/icons/FolderOpenOutlined";
 import SaveOutlined from "@ant-design/icons/SaveOutlined";
 import SettingOutlined from "@ant-design/icons/SettingOutlined";
+import type { QcIssue } from "@welllog/ts-api-client";
 import {
   App as AntDesignApp,
   Button,
@@ -21,8 +22,10 @@ import { ProjectExplorer } from "./features/workspace/ProjectExplorer";
 import {
   findFirstDisplayableDataset,
   isDisplayableCurve,
+  type QcNavigationTarget,
   type WorkspaceDocument,
 } from "./features/workspace/workspaceTypes";
+import { useDatasetQc } from "./hooks/useDatasetQc";
 import { useDocument } from "./hooks/useDocument";
 import { useEngineStatus } from "./hooks/useEngineStatus";
 
@@ -34,12 +37,15 @@ export function App() {
   const [selectedDatasetId, setSelectedDatasetId] = useState("");
   const [selectedCurveId, setSelectedCurveId] = useState("");
   const [visibleCurveIds, setVisibleCurveIds] = useState<readonly string[]>([]);
+  const [qcNavigationTarget, setQcNavigationTarget] =
+    useState<QcNavigationTarget | null>(null);
   const activeDataset = document?.datasets.find(
     (dataset) => dataset.id === selectedDatasetId,
   );
   const selectedCurve = activeDataset?.curves.find(
     (curve) => curve.id === selectedCurveId,
   );
+  const qc = useDatasetQc(document?.id, activeDataset?.id);
   const platform = window.welllogDesktop?.platform ?? "desktop";
 
   function selectInitialCurve(nextDocument: WorkspaceDocument): void {
@@ -55,6 +61,27 @@ export function App() {
     setVisibleCurveIds(
       dataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
     );
+    setQcNavigationTarget(null);
+  }
+
+  function handleQcIssueSelect(issue: QcIssue): void {
+    const curveId = issue.curve_id;
+    if (curveId) {
+      setSelectedCurveId(curveId);
+      setVisibleCurveIds((current) =>
+        current.includes(curveId) ? current : [...current, curveId],
+      );
+    }
+    const indexMinimum = issue.index_minimum;
+    if (indexMinimum == null) {
+      return;
+    }
+    setQcNavigationTarget((current) => ({
+      key: (current?.key ?? 0) + 1,
+      curveId: curveId ?? null,
+      indexMinimum,
+      indexMaximum: issue.index_maximum ?? indexMinimum,
+    }));
   }
 
   async function handleOpen(): Promise<void> {
@@ -134,6 +161,7 @@ export function App() {
       setSelectedDatasetId("");
       setSelectedCurveId("");
       setVisibleCurveIds([]);
+      setQcNavigationTarget(null);
     } catch (error) {
       void message.error(
         error instanceof Error ? error.message : "Could not close the document.",
@@ -240,6 +268,7 @@ export function App() {
                   onCurveSelect={(datasetId, curveId) => {
                     if (datasetId !== selectedDatasetId) {
                       const nextDataset = document.datasets.find((item) => item.id === datasetId);
+                      setQcNavigationTarget(null);
                       setVisibleCurveIds(
                         nextDataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
                       );
@@ -267,6 +296,8 @@ export function App() {
                     key={activeDataset.id}
                     onCurveSelect={setSelectedCurveId}
                     onVisibleCurveIdsChange={setVisibleCurveIds}
+                    qcIssues={qc.report?.issues ?? []}
+                    qcNavigationTarget={qcNavigationTarget}
                     selectedCurveId={selectedCurveId}
                     visibleCurveIds={visibleCurveIds}
                   />
@@ -289,6 +320,8 @@ export function App() {
                     dataset={activeDataset}
                     document={document}
                     busy={operations.busy}
+                    onQcIssueSelect={handleQcIssueSelect}
+                    onQcReload={qc.reload}
                     onExport={async (allScalarCurves) => {
                       const exportedPath = await operations.selectAndExportCsv(
                         document,
@@ -313,6 +346,9 @@ export function App() {
                         void message.error(error instanceof Error ? error.message : "Could not update view settings.");
                       }
                     }}
+                    qcError={qc.error}
+                    qcLoading={qc.loading}
+                    qcReport={qc.report}
                     visibleCurveIds={visibleCurveIds}
                   />
                 ) : (

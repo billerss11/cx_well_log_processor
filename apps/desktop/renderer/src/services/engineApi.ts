@@ -9,6 +9,7 @@ import {
   getMetadataObject,
   listMetadataObjects,
   openDocument,
+  runDatasetQc as requestDatasetQc,
   saveDocumentAs,
   updateDatasetViewSettings,
   type CursorValueResponse,
@@ -17,6 +18,7 @@ import {
   type JobStatusResponse,
   type MetadataObjectDetail,
   type MetadataObjectPage,
+  type QcReport,
 } from "@welllog/ts-api-client";
 
 const apiBaseUrl =
@@ -161,6 +163,19 @@ export async function getExactCursorValues(
   });
   if (!result.data) {
     throw new Error(errorMessage(result.error, "Could not look up cursor values."));
+  }
+  return result.data;
+}
+
+export async function getDatasetQc(
+  documentId: string,
+  datasetId: string,
+): Promise<QcReport> {
+  const result = await requestDatasetQc({
+    path: { dataset_id: datasetId, document_id: documentId },
+  });
+  if (!result.data) {
+    throw new Error(errorMessage(result.error, "Could not run quality-control checks."));
   }
   return result.data;
 }

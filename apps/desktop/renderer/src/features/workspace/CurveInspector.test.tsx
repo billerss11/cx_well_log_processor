@@ -144,7 +144,12 @@ test("renders LAS metadata as readable ordered sections instead of raw JSON", as
       dataset={dataset}
       document={workspaceDocument}
       onExport={vi.fn()}
+      onQcIssueSelect={vi.fn()}
+      onQcReload={vi.fn()}
       onViewSettingsSave={vi.fn()}
+      qcError={null}
+      qcLoading={false}
+      qcReport={null}
       visibleCurveIds={[curve.id]}
     />,
   );

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CancelJobData, CancelJobErrors, CancelJobResponses, CloseDocumentData, CloseDocumentErrors, CloseDocumentResponses, ExportDatasetCsvData, ExportDatasetCsvErrors, ExportDatasetCsvResponses, GetCursorValuesData, GetCursorValuesErrors, GetCursorValuesResponses, GetDocumentData, GetDocumentErrors, GetDocumentResponses, GetHealthData, GetHealthResponses, GetJobData, GetJobErrors, GetJobResponses, GetMetadataObjectData, GetMetadataObjectErrors, GetMetadataObjectResponses, GetScalarPreviewPageData, GetScalarPreviewPageErrors, GetScalarPreviewPageResponses, GetScalarVisibleRangeData, GetScalarVisibleRangeErrors, GetScalarVisibleRangeResponses, ImportLasData, ImportLasErrors, ImportLasResponses, ListMetadataObjectsData, ListMetadataObjectsErrors, ListMetadataObjectsResponses, OpenDocumentData, OpenDocumentErrors, OpenDocumentResponses, SaveDocumentAsData, SaveDocumentAsErrors, SaveDocumentAsResponses, UpdateDatasetViewSettingsData, UpdateDatasetViewSettingsErrors, UpdateDatasetViewSettingsResponses, VerifyPackageData, VerifyPackageErrors, VerifyPackageResponses } from './types.gen';
+import type { CancelJobData, CancelJobErrors, CancelJobResponses, CloseDocumentData, CloseDocumentErrors, CloseDocumentResponses, ExportDatasetCsvData, ExportDatasetCsvErrors, ExportDatasetCsvResponses, GetCursorValuesData, GetCursorValuesErrors, GetCursorValuesResponses, GetDocumentData, GetDocumentErrors, GetDocumentResponses, GetHealthData, GetHealthResponses, GetJobData, GetJobErrors, GetJobResponses, GetMetadataObjectData, GetMetadataObjectErrors, GetMetadataObjectResponses, GetScalarPreviewPageData, GetScalarPreviewPageErrors, GetScalarPreviewPageResponses, GetScalarVisibleRangeData, GetScalarVisibleRangeErrors, GetScalarVisibleRangeResponses, ImportLasData, ImportLasErrors, ImportLasResponses, ListMetadataObjectsData, ListMetadataObjectsErrors, ListMetadataObjectsResponses, OpenDocumentData, OpenDocumentErrors, OpenDocumentResponses, RunDatasetQcData, RunDatasetQcErrors, RunDatasetQcResponses, SaveDocumentAsData, SaveDocumentAsErrors, SaveDocumentAsResponses, UpdateDatasetViewSettingsData, UpdateDatasetViewSettingsErrors, UpdateDatasetViewSettingsResponses, VerifyPackageData, VerifyPackageErrors, VerifyPackageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -75,6 +75,11 @@ export const exportDatasetCsv = <ThrowOnError extends boolean = false>(options: 
         ...options.headers
     }
 });
+
+/**
+ * Run Dataset Qc
+ */
+export const runDatasetQc = <ThrowOnError extends boolean = false>(options: Options<RunDatasetQcData, ThrowOnError>): RequestResult<RunDatasetQcResponses, RunDatasetQcErrors, ThrowOnError> => (options.client ?? client).get<RunDatasetQcResponses, RunDatasetQcErrors, ThrowOnError>({ url: '/api/v1/documents/{document_id}/datasets/{dataset_id}/qc', ...options });
 
 /**
  * Get Scalar Preview Page

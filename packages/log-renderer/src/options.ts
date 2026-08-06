@@ -408,6 +408,9 @@ export function buildScalarLogOption(
     series: model.curves.map((curve, trackIndex) => {
       const axis = getAxisDefinition(curve);
       const selected = curve.id === model.selectedCurveId;
+      const qcMarkers = (model.qcMarkers ?? []).filter((marker) =>
+        marker.curveId ? marker.curveId === curve.id : trackIndex === 0,
+      );
       return {
         id: curve.id,
         name: curve.mnemonic,
@@ -452,7 +455,39 @@ export function buildScalarLogOption(
             fontFamily: "JetBrains Mono Variable, Cascadia Mono, monospace",
             fontSize: 8,
           },
-          data: [{ yAxis: cursorIndex }],
+          data: [
+            { yAxis: cursorIndex },
+            ...qcMarkers.map((marker) => ({
+              yAxis: marker.index,
+              name: marker.label,
+              lineStyle: {
+                color:
+                  marker.severity === "error"
+                    ? "#c4514c"
+                    : marker.severity === "warning"
+                      ? "#b27a2d"
+                      : "#447b92",
+                type: "dashed" as const,
+                width: 1,
+              },
+              label: {
+                show: true,
+                formatter: marker.label,
+                position: "insideEndTop" as const,
+                color: "#fffaf2",
+                backgroundColor:
+                  marker.severity === "error"
+                    ? "#9f403c"
+                    : marker.severity === "warning"
+                      ? "#8b642c"
+                      : "#386779",
+                borderRadius: 5,
+                padding: [3, 6],
+                fontFamily: "JetBrains Mono Variable, Cascadia Mono, monospace",
+                fontSize: 8,
+              },
+            })),
+          ],
         },
       };
     }),
