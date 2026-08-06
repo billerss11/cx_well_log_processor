@@ -96,6 +96,8 @@ pygments==2.20.0
     #   rich
 pytest==9.1.1
     # via welllog-engine (python/pyproject.toml)
+python-multipart==0.0.32
+    # via welllog-engine (python/pyproject.toml)
 pyyaml==6.0.3
     # via donfig
 rich==15.0.0

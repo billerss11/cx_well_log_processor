@@ -17,6 +17,7 @@ dependencies = [
     "lxml>=5,<7",
     "pyarrow>=18,<23",
     "pydantic>=2.10,<3",
+    "python-multipart>=0.0.20,<1",
     "typer>=0.16,<1",
     "uvicorn>=0.34,<1",
     "zarr>=3,<4",

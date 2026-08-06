@@ -5,6 +5,26 @@ export type ClientOptions = {
 };
 
 /**
+ * Body_uploadDocument
+ */
+export type BodyUploadDocument = {
+    /**
+     * File
+     *
+     * LAS, DLIS, WITSML XML/EPC, or CX Log file.
+     */
+    file: Blob | File;
+    /**
+     * Index Candidate Id
+     */
+    index_candidate_id?: string | null;
+    /**
+     * Max Preview Points
+     */
+    max_preview_points?: number;
+};
+
+/**
  * CsvExportRequest
  */
 export type CsvExportRequest = {
@@ -879,6 +899,31 @@ export type OpenDocumentResponses = {
 };
 
 export type OpenDocumentResponse = OpenDocumentResponses[keyof OpenDocumentResponses];
+
+export type UploadDocumentData = {
+    body: BodyUploadDocument;
+    path?: never;
+    query?: never;
+    url: '/api/v1/documents/upload';
+};
+
+export type UploadDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadDocumentError = UploadDocumentErrors[keyof UploadDocumentErrors];
+
+export type UploadDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    202: JobAcceptedResponse;
+};
+
+export type UploadDocumentResponse = UploadDocumentResponses[keyof UploadDocumentResponses];
 
 export type VerifyPackageData = {
     body: VerifyPackageRequest;

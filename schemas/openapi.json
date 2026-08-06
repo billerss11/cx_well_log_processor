@@ -1,6 +1,39 @@
 {
   "components": {
     "schemas": {
+      "Body_uploadDocument": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "LAS, DLIS, WITSML XML/EPC, or CX Log file.",
+            "title": "File",
+            "type": "string"
+          },
+          "index_candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Candidate Id"
+          },
+          "max_preview_points": {
+            "default": 800,
+            "maximum": 2000.0,
+            "minimum": 100.0,
+            "title": "Max Preview Points",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_uploadDocument",
+        "type": "object"
+      },
       "CsvExportRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1505,6 +1538,47 @@
           }
         },
         "summary": "Open Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/upload": {
+      "post": {
+        "operationId": "uploadDocument",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_uploadDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Document",
         "tags": [
           "documents"
         ]

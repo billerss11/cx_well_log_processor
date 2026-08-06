@@ -53,6 +53,40 @@ You can double-click any of the `.bat` files from Windows Explorer.
 
 The development API is available at `http://127.0.0.1:8765/api/v1`.
 
+## Headless CLI and local API
+
+The Python engine works without Electron or the React UI. To parse a file directly
+from a terminal and print a bounded JSON summary:
+
+```powershell
+conda run --no-capture-output -n cx_well_log_backend welllog inspect files/test.las --index-candidate curve:0
+```
+
+Start only the local HTTP API:
+
+```powershell
+conda run --no-capture-output -n cx_well_log_backend python -m welllog_engine.api
+```
+
+Upload a LAS, DLIS, WITSML XML/EPC, or CX Log file from another terminal:
+
+```powershell
+$accepted = curl.exe -s -F "file=@files/test.las" -F "index_candidate_id=curve:0" http://127.0.0.1:8765/api/v1/documents/upload | ConvertFrom-Json
+curl.exe -s "http://127.0.0.1:8765/api/v1/jobs/$($accepted.job_id)"
+```
+
+The completed job contains the parsed document summary. Close it when finished so
+temporary uploaded data is removed:
+
+```powershell
+curl.exe -X POST "http://127.0.0.1:8765/api/v1/documents/DOCUMENT_ID/close"
+```
+
+The server binds only to `127.0.0.1`. Uploaded files are streamed to disk rather
+than loaded into memory and are deleted when the document closes or the engine
+stops. Full curve arrays are not returned in JSON; use the bounded scalar range and
+preview endpoints for numerical data.
+
 ## CX Log documents
 
 The desktop can open LAS, DLIS, local WITSML XML/EPC, and `.cxlog` files. Raw

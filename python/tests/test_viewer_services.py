@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import shutil
 import time
 import zipfile
 from pathlib import Path
@@ -40,6 +41,46 @@ def test_ambiguous_las_job_returns_structured_candidates() -> None:
         assert job["error_code"] == "INDEX_SELECTION_REQUIRED"
         candidates = job["error_details"]["candidates"]
         assert [candidate["mnemonic"] for candidate in candidates[:2]] == ["DEPT", "TVD"]
+
+
+def test_uploaded_las_returns_parsed_document_job() -> None:
+    with TestClient(create_app()) as client, SAMPLE_LAS_PATH.open("rb") as source:
+        accepted = client.post(
+            "/api/v1/documents/upload",
+            data={"index_candidate_id": "curve:0", "max_preview_points": "100"},
+            files={"file": ("test.las", source, "application/octet-stream")},
+        )
+
+        assert accepted.status_code == 202
+        job = _wait_for_job(client, accepted.json()["job_id"])
+        assert job["state"] == "COMPLETED"
+        assert job["document"]["source_format"] == "LAS"
+        assert job["document"]["datasets"][0]["curves"][0]["preview_samples"]
+
+        closed = client.post(
+            f"/api/v1/documents/{job['document']['id']}/close",
+        )
+        assert closed.status_code == 204
+
+
+def test_owned_upload_is_removed_when_document_closes() -> None:
+    service = DocumentService()
+    upload_path = service.create_upload_path("test.las")
+    shutil.copyfile(SAMPLE_LAS_PATH, upload_path)
+    try:
+        summary = service.open_document(
+            upload_path,
+            index_candidate_id="curve:0",
+            owned_source=True,
+        )
+        assert upload_path.is_file()
+
+        service.close_document(summary.id)
+
+        assert not upload_path.parent.exists()
+    finally:
+        service.close_all()
+        service.discard_upload(upload_path)
 
 
 def test_scalar_queries_are_bounded_and_cursor_is_honest() -> None:

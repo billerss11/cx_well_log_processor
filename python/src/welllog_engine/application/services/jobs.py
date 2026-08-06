@@ -34,6 +34,7 @@ class JobRecord:
     error_details: dict[str, object] | None = None
     cancel_requested: bool = False
     future: Future[None] | None = None
+    cleanup_on_cancel: Callable[[], None] | None = None
 
 
 class JobService:
@@ -49,6 +50,8 @@ class JobService:
         source_path: Path,
         max_preview_points: int,
         index_candidate_id: str | None = None,
+        *,
+        owned_source: bool = False,
     ) -> JobAcceptedResponse:
         return self._submit(
             operation="open_document",
@@ -56,6 +59,12 @@ class JobService:
                 source_path,
                 max_preview_points=max_preview_points,
                 index_candidate_id=index_candidate_id,
+                owned_source=owned_source,
+            ),
+            cleanup_on_cancel=(
+                (lambda: self._documents.discard_upload(source_path))
+                if owned_source
+                else None
             ),
         )
 
@@ -106,6 +115,7 @@ class JobService:
             )
 
     def cancel(self, job_id: str) -> JobStatusResponse:
+        cleanup: Callable[[], None] | None = None
         with self._lock:
             record = self._jobs.get(job_id)
             if record is None:
@@ -117,9 +127,13 @@ class JobService:
                 record.state = JobState.CANCELLED
                 record.progress = 1
                 record.message = "Cancelled"
+                cleanup = record.cleanup_on_cancel
+                record.cleanup_on_cancel = None
             else:
                 record.state = JobState.CANCELLING
                 record.message = "Cancellation requested"
+        if cleanup is not None:
+            cleanup()
         return self.get(job_id)
 
     def _submit(
@@ -127,6 +141,7 @@ class JobService:
         *,
         operation: str,
         work: Callable[[Callable[[], bool]], DocumentSummary | Path],
+        cleanup_on_cancel: Callable[[], None] | None = None,
     ) -> JobAcceptedResponse:
         job_id = uuid4().hex
         record = JobRecord(
@@ -135,6 +150,7 @@ class JobService:
             state=JobState.QUEUED,
             progress=0,
             message="Queued",
+            cleanup_on_cancel=cleanup_on_cancel,
         )
         with self._lock:
             self._jobs[job_id] = record
@@ -147,15 +163,23 @@ class JobService:
         record: JobRecord,
         work: Callable[[Callable[[], bool]], DocumentSummary | Path],
     ) -> None:
+        cleanup: Callable[[], None] | None = None
         with self._lock:
             if record.cancel_requested:
                 record.state = JobState.CANCELLED
                 record.progress = 1
                 record.message = "Cancelled"
-                return
-            record.state = JobState.RUNNING
-            record.progress = 0.1
-            record.message = "Processing source data"
+                cleanup = record.cleanup_on_cancel
+                record.cleanup_on_cancel = None
+            else:
+                record.state = JobState.RUNNING
+                record.progress = 0.1
+                record.message = "Processing source data"
+        if cleanup is not None:
+            cleanup()
+            return
+        if record.state == JobState.CANCELLED:
+            return
         try:
             result = work(lambda: self._is_cancel_requested(record.id))
             with self._lock:

@@ -51,6 +51,7 @@ class DocumentSession:
     saved: bool
     package_path: Path | None
     manifest: CxlogManifest
+    owned_source_path: Path | None = None
     modified: bool = False
 
 
@@ -76,6 +77,7 @@ class DocumentService:
         *,
         max_preview_points: int = 800,
         index_candidate_id: str | None = None,
+        owned_source: bool = False,
     ) -> DocumentSummary:
         source = source_path.expanduser().resolve()
         session_path = self._create_session_path()
@@ -90,6 +92,7 @@ class DocumentService:
                     saved=True,
                     package_path=source,
                     manifest=manifest,
+                    owned_source_path=source if owned_source else None,
                 )
             else:
                 result = self._convert_source(
@@ -106,16 +109,38 @@ class DocumentService:
                     saved=False,
                     package_path=None,
                     manifest=manifest,
+                    owned_source_path=source if owned_source else None,
                 )
             with self._lock:
                 existing = self._sessions.pop(session.id, None)
                 if existing is not None:
-                    remove_session_directory(existing.working_path)
+                    self._discard_session(existing)
                 self._sessions[session.id] = session
             return self._summary(session)
         except Exception:
             remove_session_directory(session_path)
+            if owned_source:
+                self.discard_upload(source)
             raise
+
+    def create_upload_path(self, filename: str) -> Path:
+        safe_name = Path(filename).name
+        if not safe_name or safe_name in {".", ".."}:
+            raise DocumentError("The uploaded file must have a filename.")
+        directory = self._root / f"upload-{uuid4().hex}"
+        directory.mkdir(parents=True)
+        (directory / ".owner.json").write_text(
+            json.dumps({"pid": os.getpid()}),
+            encoding="utf-8",
+        )
+        return directory / safe_name
+
+    def discard_upload(self, source_path: Path) -> None:
+        source = source_path.expanduser().resolve()
+        directory = source.parent
+        if directory.parent != self._root or not directory.name.startswith("upload-"):
+            return
+        remove_session_directory(directory)
 
     def get_document(self, document_id: str) -> DocumentSummary:
         return self._summary(self._get_session(document_id))
@@ -217,7 +242,7 @@ class DocumentService:
             session = self._sessions.pop(document_id, None)
         if session is None:
             raise DocumentError(f"Document {document_id} is not open.")
-        remove_session_directory(session.working_path)
+        self._discard_session(session)
 
     def inspect(self, source_path: Path, *, max_preview_points: int = 800) -> DocumentSummary:
         summary = self.open_document(
@@ -243,7 +268,12 @@ class DocumentService:
             sessions = list(self._sessions.values())
             self._sessions.clear()
         for session in sessions:
-            remove_session_directory(session.working_path)
+            self._discard_session(session)
+
+    def _discard_session(self, session: DocumentSession) -> None:
+        remove_session_directory(session.working_path)
+        if session.owned_source_path is not None:
+            self.discard_upload(session.owned_source_path)
 
     def _convert_source(
         self,
@@ -302,7 +332,7 @@ class DocumentService:
         return path
 
     def _cleanup_stale_sessions(self) -> None:
-        for path in self._root.glob("session-*"):
+        for path in [*self._root.glob("session-*"), *self._root.glob("upload-*")]:
             marker = path / ".owner.json"
             try:
                 owner = json.loads(marker.read_text(encoding="utf-8"))

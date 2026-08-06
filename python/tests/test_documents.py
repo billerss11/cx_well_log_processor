@@ -221,3 +221,6 @@ def test_openapi_has_stable_document_job_operation_ids() -> None:
         "openDocument"
     )
     assert schema["paths"]["/api/v1/jobs/{job_id}"]["get"]["operationId"] == "getJob"
+    assert schema["paths"]["/api/v1/documents/upload"]["post"]["operationId"] == (
+        "uploadDocument"
+    )
