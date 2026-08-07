@@ -187,6 +187,8 @@ class ScalarPreviewPageRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     curve_ids: list[str] = Field(default_factory=list, max_length=32)
+    index_minimum: float | None = None
+    index_maximum: float | None = None
     page: int = Field(default=0, ge=0)
     page_size: int = Field(default=100, ge=1, le=100)
 

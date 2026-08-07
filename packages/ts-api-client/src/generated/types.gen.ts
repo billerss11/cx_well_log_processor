@@ -777,6 +777,14 @@ export type ScalarPreviewPageRequest = {
      */
     curve_ids?: Array<string>;
     /**
+     * Index Maximum
+     */
+    index_maximum?: number | null;
+    /**
+     * Index Minimum
+     */
+    index_minimum?: number | null;
+    /**
      * Page
      */
     page?: number;

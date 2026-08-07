@@ -1,5 +1,6 @@
 import AimOutlined from "@ant-design/icons/AimOutlined";
 import CompressOutlined from "@ant-design/icons/CompressOutlined";
+import TableOutlined from "@ant-design/icons/TableOutlined";
 import ZoomInOutlined from "@ant-design/icons/ZoomInOutlined";
 import ZoomOutOutlined from "@ant-design/icons/ZoomOutOutlined";
 import { chunkCurveIds } from "@welllog/arrow-data-client";
@@ -37,6 +38,7 @@ interface LogWorkspaceProps {
   readonly selectedCurveId: string;
   readonly visibleCurveIds: readonly string[];
   readonly onCurveSelect: (curveId: string) => void;
+  readonly onDataPreviewOpen: () => void;
   readonly onVisibleCurveIdsChange: (curveIds: readonly string[]) => void;
   readonly qcIssues: readonly QcIssue[];
   readonly qcNavigationTarget: QcNavigationTarget | null;
@@ -48,6 +50,7 @@ export function LogWorkspace({
   selectedCurveId,
   visibleCurveIds,
   onCurveSelect,
+  onDataPreviewOpen,
   onVisibleCurveIdsChange,
   qcIssues,
   qcNavigationTarget,
@@ -279,27 +282,43 @@ export function LogWorkspace({
           </div>
 
           <div className="curve-chip-list" aria-label="Visible curves">
-            {displayedCurves.map((curve) => (
-              <button
-                aria-pressed={selectedCurveId === curve.id}
-                className={`curve-chip is-visible${selectedCurveId === curve.id ? " is-active" : ""}`}
-                key={curve.id}
-                onClick={() => onCurveSelect(curve.id)}
-                type="button"
-              >
-                <span aria-hidden="true" className="curve-chip-line" style={{ backgroundColor: curve.color }} />
-                {curve.mnemonic}
-              </button>
-            ))}
+            {displayedCurves.map((curve) => {
+              const curveLabel = `${curve.mnemonic} — ${curve.description}${curve.unit ? ` (${curve.unit})` : ""}`;
+              return (
+                <Tooltip key={curve.id} title={curveLabel}>
+                  <button
+                    aria-label={curveLabel}
+                    aria-pressed={selectedCurveId === curve.id}
+                    className={`curve-chip is-visible${selectedCurveId === curve.id ? " is-active" : ""}`}
+                    onClick={() => onCurveSelect(curve.id)}
+                    type="button"
+                  >
+                    <span aria-hidden="true" className="curve-chip-line" style={{ backgroundColor: curve.color }} />
+                    {curve.mnemonic}
+                  </button>
+                </Tooltip>
+              );
+            })}
           </div>
         </div>
 
-        <div className="cursor-readout">
-          <span>{selectedCurve.mnemonic}</span>
-          <strong>{formatCurveValue(cursorValue)}</strong>
-          <span>{selectedCurve.unit}</span>
-          {cursorLookupLoading ? <Spin size="small" /> : null}
-          {exactCursorValue ? <small>{exactCursorValue.status}</small> : <small>viewport</small>}
+        <div className="curve-toolbar-actions">
+          <Button
+            aria-label="Open data table"
+            className="data-table-button"
+            icon={<TableOutlined />}
+            onClick={onDataPreviewOpen}
+            size="small"
+          >
+            Data table
+          </Button>
+          <div className="cursor-readout">
+            <span>{selectedCurve.mnemonic}</span>
+            <strong>{formatCurveValue(cursorValue)}</strong>
+            <span>{selectedCurve.unit}</span>
+            {cursorLookupLoading ? <Spin size="small" /> : null}
+            {exactCursorValue ? <small>{exactCursorValue.status}</small> : <small>viewport</small>}
+          </div>
         </div>
       </div>
 

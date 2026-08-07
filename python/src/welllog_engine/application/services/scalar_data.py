@@ -192,11 +192,26 @@ class ScalarDataService:
             f"{_quote_identifier(channel.parquet_column)} AS {_quote_identifier(channel.id)}"
             for channel in dataset.channels
         )
+        minimum = request.index_minimum
+        maximum = request.index_maximum
+        if minimum is not None and maximum is not None and minimum > maximum:
+            minimum, maximum = maximum, minimum
+        filters: list[str] = []
+        parameters: list[object] = [str(asset_path)]
+        if minimum is not None:
+            filters.append(f'{_quote_identifier("index")} >= ?')
+            parameters.append(minimum)
+        if maximum is not None:
+            filters.append(f'{_quote_identifier("index")} <= ?')
+            parameters.append(maximum)
+        where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
+        parameters.extend([request.page_size, request.page * request.page_size])
         connection = duckdb.connect()
         try:
             connection.execute(
-                f"SELECT {', '.join(selections)} FROM read_parquet(?) LIMIT ? OFFSET ?",
-                [str(asset_path), request.page_size, request.page * request.page_size],
+                f"SELECT {', '.join(selections)} FROM read_parquet(?)"
+                f"{where_clause} LIMIT ? OFFSET ?",
+                parameters,
             )
             table = connection.to_arrow_table()
         finally:

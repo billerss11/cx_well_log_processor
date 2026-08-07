@@ -28,7 +28,6 @@ import {
   getMetadataObjectDetail,
   getMetadataObjects,
 } from "../../services/engineApi";
-import { DataPreviewDrawer } from "./DataPreviewDrawer";
 import { QualityControlPanel } from "./QualityControlPanel";
 import {
   formatCurveValue,
@@ -46,6 +45,7 @@ interface CurveInspectorProps {
   readonly qcReport: QcReport | null;
   readonly qcLoading: boolean;
   readonly qcError: string | null;
+  readonly onDataPreviewOpen: () => void;
   readonly onExport: (allScalarCurves: boolean) => Promise<void>;
   readonly onQcIssueSelect: (issue: QcIssue) => void;
   readonly onQcReload: () => void;
@@ -61,12 +61,12 @@ export function CurveInspector({
   qcReport,
   qcLoading,
   qcError,
+  onDataPreviewOpen,
   onExport,
   onQcIssueSelect,
   onQcReload,
   onViewSettingsSave,
 }: CurveInspectorProps) {
-  const [previewOpen, setPreviewOpen] = useState(false);
   const descriptionItems: DescriptionsProps["items"] = [
     { key: "unit", label: "Unit", children: curve.unit || "—" },
     { key: "scale", label: "Scale", children: curve.scale },
@@ -125,7 +125,7 @@ export function CurveInspector({
                 busy={busy}
                 dataset={dataset}
                 onExport={onExport}
-                onPreview={() => setPreviewOpen(true)}
+                onPreview={onDataPreviewOpen}
                 onViewSettingsSave={onViewSettingsSave}
                 selectedCount={visibleCurveIds.length}
               />
@@ -160,13 +160,6 @@ export function CurveInspector({
         ]}
       />
 
-      <DataPreviewDrawer
-        curveIds={visibleCurveIds}
-        dataset={dataset}
-        documentId={document.id}
-        onClose={() => setPreviewOpen(false)}
-        open={previewOpen}
-      />
     </aside>
   );
 }

@@ -17,6 +17,7 @@ import { useState } from "react";
 
 import "./app.css";
 import { CurveInspector } from "./features/workspace/CurveInspector";
+import { DataPreviewDrawer } from "./features/workspace/DataPreviewDrawer";
 import { LogWorkspace } from "./features/workspace/LogWorkspace";
 import { ProjectExplorer } from "./features/workspace/ProjectExplorer";
 import {
@@ -37,6 +38,7 @@ export function App() {
   const [selectedDatasetId, setSelectedDatasetId] = useState("");
   const [selectedCurveId, setSelectedCurveId] = useState("");
   const [visibleCurveIds, setVisibleCurveIds] = useState<readonly string[]>([]);
+  const [dataPreviewOpen, setDataPreviewOpen] = useState(false);
   const [qcNavigationTarget, setQcNavigationTarget] =
     useState<QcNavigationTarget | null>(null);
   const activeDataset = document?.datasets.find(
@@ -61,6 +63,7 @@ export function App() {
     setVisibleCurveIds(
       dataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
     );
+    setDataPreviewOpen(false);
     setQcNavigationTarget(null);
   }
 
@@ -161,6 +164,7 @@ export function App() {
       setSelectedDatasetId("");
       setSelectedCurveId("");
       setVisibleCurveIds([]);
+      setDataPreviewOpen(false);
       setQcNavigationTarget(null);
     } catch (error) {
       void message.error(
@@ -268,6 +272,7 @@ export function App() {
                   onCurveSelect={(datasetId, curveId) => {
                     if (datasetId !== selectedDatasetId) {
                       const nextDataset = document.datasets.find((item) => item.id === datasetId);
+                      setDataPreviewOpen(false);
                       setQcNavigationTarget(null);
                       setVisibleCurveIds(
                         nextDataset?.curves.filter(isDisplayableCurve).slice(0, 8).map((item) => item.id) ?? [],
@@ -295,6 +300,7 @@ export function App() {
                     document={document}
                     key={activeDataset.id}
                     onCurveSelect={setSelectedCurveId}
+                    onDataPreviewOpen={() => setDataPreviewOpen(true)}
                     onVisibleCurveIdsChange={setVisibleCurveIds}
                     qcIssues={qc.report?.issues ?? []}
                     qcNavigationTarget={qcNavigationTarget}
@@ -320,6 +326,7 @@ export function App() {
                     dataset={activeDataset}
                     document={document}
                     busy={operations.busy}
+                    onDataPreviewOpen={() => setDataPreviewOpen(true)}
                     onQcIssueSelect={handleQcIssueSelect}
                     onQcReload={qc.reload}
                     onExport={async (allScalarCurves) => {
@@ -378,6 +385,16 @@ export function App() {
           )}
         </section>
       </div>
+
+      {document && activeDataset ? (
+        <DataPreviewDrawer
+          curveIds={visibleCurveIds}
+          dataset={activeDataset}
+          documentId={document.id}
+          onClose={() => setDataPreviewOpen(false)}
+          open={dataPreviewOpen}
+        />
+      ) : null}
 
       <footer className="app-statusbar">
         <div>

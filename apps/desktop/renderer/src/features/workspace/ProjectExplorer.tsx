@@ -35,7 +35,7 @@ function createDocumentTreeData(
             title: (
               <span className="curve-tree-label">
                 <Checkbox
-                  aria-label={`${visibleCurveIds.includes(curve.id) ? "Hide" : "Show"} ${curve.mnemonic}`}
+                  aria-label={`${visibleCurveIds.includes(curve.id) ? "Hide" : "Show"} ${curve.mnemonic}, ${curve.description}${curve.unit ? `, ${curve.unit}` : ""}`}
                   checked={visibleCurveIds.includes(curve.id)}
                   disabled={!isDisplayableCurve(curve)}
                   onChange={(event) =>
@@ -48,9 +48,16 @@ function createDocumentTreeData(
                   className="curve-swatch"
                   style={{ backgroundColor: curve.color }}
                 />
-                <span>{curve.mnemonic}</span>
-                <span className="curve-tree-unit">
-                  {curve.sampleShape.length > 0 ? "array" : curve.unit}
+                <span className="curve-tree-copy">
+                  <span className="curve-tree-primary">
+                    <strong>{curve.mnemonic}</strong>
+                    <span className="curve-tree-unit">
+                      {curve.sampleShape.length > 0 ? "array" : curve.unit}
+                    </span>
+                  </span>
+                  <span className="curve-tree-description" title={curve.description}>
+                    {curve.description || "No description"}
+                  </span>
                 </span>
               </span>
             ),

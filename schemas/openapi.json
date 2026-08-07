@@ -1336,6 +1336,28 @@
             "title": "Curve Ids",
             "type": "array"
           },
+          "index_maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Maximum"
+          },
+          "index_minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Minimum"
+          },
           "page": {
             "default": 0,
             "minimum": 0.0,

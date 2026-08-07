@@ -114,6 +114,26 @@ def test_scalar_queries_are_bounded_and_cursor_is_honest() -> None:
         assert preview_table.num_rows == 100
         assert preview_table.column_names == ["__index", *curve_ids]
 
+        range_minimum = float(preview_table.column("__index")[10].as_py())
+        range_maximum = float(preview_table.column("__index")[20].as_py())
+        filtered_preview = scalar.preview_page_arrow(
+            summary.id,
+            dataset.id,
+            ScalarPreviewPageRequest(
+                curve_ids=curve_ids,
+                index_minimum=range_maximum,
+                index_maximum=range_minimum,
+                page=0,
+                page_size=100,
+            ),
+        )
+        filtered_table = ipc.open_stream(filtered_preview).read_all()
+        filtered_indexes = [
+            float(value) for value in filtered_table.column("__index").to_pylist()
+        ]
+        assert filtered_indexes
+        assert all(range_minimum <= value <= range_maximum for value in filtered_indexes)
+
         exact_index = float(preview_table.column("__index")[0].as_py())
         cursor = scalar.cursor_values(summary.id, dataset.id, curve_ids, exact_index)
         assert all(

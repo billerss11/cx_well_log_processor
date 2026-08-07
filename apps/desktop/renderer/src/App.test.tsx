@@ -185,8 +185,8 @@ test("shows eight curves by default and allows more without a cap", async () => 
   const visibleCurves = await screen.findByLabelText("Visible curves");
   expect(within(visibleCurves).getAllByRole("button")).toHaveLength(8);
 
-  fireEvent.click(screen.getByRole("checkbox", { name: "Show C9" }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Show C10" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Show C9, Curve 9, gAPI/i }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Show C10, Curve 10, gAPI/i }));
   expect(within(visibleCurves).getAllByRole("button")).toHaveLength(10);
 });
 

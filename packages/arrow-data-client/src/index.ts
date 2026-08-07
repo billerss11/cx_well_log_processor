@@ -19,6 +19,8 @@ export interface VisibleRangeRequest {
 
 export interface PreviewPageRequest {
   readonly curveIds: readonly string[];
+  readonly indexMinimum?: number;
+  readonly indexMaximum?: number;
   readonly page: number;
   readonly pageSize?: number;
 }
@@ -88,6 +90,8 @@ export class ArrowDataClient {
       `/api/v1/documents/${encodeURIComponent(documentId)}/datasets/${encodeURIComponent(datasetId)}/scalar/preview`,
       {
         curve_ids: request.curveIds,
+        index_maximum: request.indexMaximum,
+        index_minimum: request.indexMinimum,
         page: request.page,
         page_size: request.pageSize ?? 100,
       },

@@ -112,6 +112,7 @@ afterEach(cleanup);
 
 test("lets the user select, clear, and restore plotted curves", () => {
   const onCurveSelect = vi.fn();
+  const onDataPreviewOpen = vi.fn();
 
   function TestWorkspace() {
     const [visibleCurveIds, setVisibleCurveIds] = useState<readonly string[]>([
@@ -123,6 +124,7 @@ test("lets the user select, clear, and restore plotted curves", () => {
         dataset={dataset}
         document={document}
         onCurveSelect={onCurveSelect}
+        onDataPreviewOpen={onDataPreviewOpen}
         onVisibleCurveIdsChange={setVisibleCurveIds}
         qcIssues={[]}
         qcNavigationTarget={null}
@@ -137,8 +139,13 @@ test("lets the user select, clear, and restore plotted curves", () => {
 
   expect(screen.getByLabelText("Rendered curves")).toHaveTextContent("GR, RHOB");
 
-  fireEvent.click(screen.getByRole("button", { name: "RHOB" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: /RHOB.*Bulk density.*g\/cm3/i }),
+  );
   expect(onCurveSelect).toHaveBeenCalledWith("rhob");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open data table" }));
+  expect(onDataPreviewOpen).toHaveBeenCalledOnce();
 
   fireEvent.click(screen.getByRole("button", { name: "Clear" }));
   expect(screen.queryByLabelText("Rendered curves")).not.toBeInTheDocument();
