@@ -309,6 +309,12 @@ button:focus-visible,
   overflow: hidden;
 }
 
+.log-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .empty-workspace,
 .panel-empty {
   display: grid;
@@ -497,6 +503,7 @@ button:focus-visible,
 
 .log-workspace {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   gap: 10px;
@@ -940,10 +947,6 @@ button:focus-visible,
 
 .status-light.is-ready {
   background: #3f7d5a;
-}
-
-.workspace-warning:empty {
-  display: none;
 }
 
 .workspace-warning .ant-alert {
